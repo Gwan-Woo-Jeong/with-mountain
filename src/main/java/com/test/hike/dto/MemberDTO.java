@@ -11,7 +11,6 @@ import java.util.List;
 @Setter
 @ToString
 public class MemberDTO {
-
 	private String memberId;
 	private String clubId;
 	private String userId;
@@ -19,5 +18,4 @@ public class MemberDTO {
 	private String memberRegdate;
 	private String memberOutDate;
 	private String memberOutStatus;
-	
 }

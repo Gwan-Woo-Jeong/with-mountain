@@ -48,20 +48,20 @@ function popupClose() {
 
 // 초대 코드 랜덤 생성하기
 function generateRandomCode() {
-    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let randomCode = '';
-
+    // 랜덤 코드 생성 (예: 6자리의 알파벳과 숫자 조합)
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code = '';
     for (let i = 0; i < 6; i++) {
-        const randomIndex = Math.floor(Math.random() * characters.length);
-        randomCode += characters[randomIndex];
+        code += characters.charAt(Math.floor(Math.random() * characters.length));
     }
 
-    // 생성된 코드를 input의 value에 설정
-    document.getElementById('code').value = randomCode;
+    // 생성된 코드를 입력 필드에 설정
+    document.getElementById('clubCode').value = code;
 }
 
+
 // 페이지 로드 시 자동으로 코드 생성 (원하는 경우 추가)
-window.onload = generateRandomCode;
+// window.onload = generateRandomCode;
 
 //
 // // 어떤게 폼으로 보내지는지 봐보자!!

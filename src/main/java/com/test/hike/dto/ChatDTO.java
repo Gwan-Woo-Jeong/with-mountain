@@ -4,8 +4,8 @@ import lombok.Data;
 
 @Data
 public class ChatDTO {
-	private int chatId;
-	private int groupID;
-	private String sysdate;
-	private String endTime;
+	private String chatId;
+	private String groupId;
+	private String chatStartTime;
+	private String chatEndTime;
 }

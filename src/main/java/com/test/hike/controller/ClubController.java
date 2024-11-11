@@ -3,30 +3,19 @@ package com.test.hike.controller;
 import com.test.hike.dao.ClubDAO;
 import com.test.hike.dto.ClubDTO;
 import com.test.hike.dto.ClubGalleryDTO;
-import com.test.hike.dto.MemberDTO;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import java.io.File;
-import java.io.IOException;
-import java.lang.reflect.Member;
 import java.util.List;
 
 @Controller
 @RequiredArgsConstructor
 @RequestMapping("/club")
 public class ClubController {
-
-
-	@Autowired
-	private ServletContext servletContext; //application 객체
 
 	private final ClubDAO dao;
 
@@ -50,19 +39,19 @@ public class ClubController {
 	}
 
 	@GetMapping("/view")
-	public String view(Model model, String clubId) {
+	public String view(Model model, String club_id) {
 
-			ClubDTO clubDTO = dao.clubView(clubId);
-			model.addAttribute("clubDTO", clubDTO);
+		ClubDTO clubDTO = dao.clubView(club_id);
+		model.addAttribute("clubDTO", clubDTO);
 
-			return "club.view";
+		return "club.view";
 	}
 
 	@GetMapping("/scheduler")
-	public String scheduler(Model model, String clubId) {
+	public String scheduler(Model model, String club_id) {
 
 
-		ClubDTO clubDTO = dao.clubScheduler(clubId);
+		ClubDTO clubDTO = dao.clubScheduler(club_id);
 		model.addAttribute("clubDTO", clubDTO);
 
 		return "club.scheduler";
@@ -70,9 +59,9 @@ public class ClubController {
 
 
 	@GetMapping("/hike")
-	public String hike(Model model, String clubId) {
+	public String hike(Model model, String club_id) {
 
-		ClubDTO clubDTO = dao.clubHike(clubId);
+		ClubDTO clubDTO = dao.clubHike(club_id);
 		model.addAttribute("clubDTO", clubDTO);
 
 		return "club.hike";
@@ -80,81 +69,37 @@ public class ClubController {
 
 	@GetMapping("/gallery")
 	public String gallery(Model model,
-						  @RequestParam String clubId) {
+						  @RequestParam String club_id) {
 
-		ClubDTO clubDTO = dao.clubGallery(clubId);
+		ClubDTO clubDTO = dao.clubGallery(club_id);
 		model.addAttribute("clubDTO", clubDTO);
 
 
-		List<ClubGalleryDTO> galleryList = dao.galleryList(clubId);
+		List<ClubGalleryDTO> galleryList = dao.galleryList(club_id);
 		model.addAttribute("galleryList", galleryList);
 
 		return "club.gallery";
 	}
 
+//	@GetMapping("/gallery")
+//	public String galleryList(Model model) {
+//
+//		List<ClubGalleryDTO> galleryList = dao.galleryList();
+//		model.addAttribute("galleryList", galleryList);
+//
+//		return "club.gallery";
+//	}
+
 //	@PostMapping ("/galleryok")
-//	public String galleryok(Model model,
-//							@ModelAttribute ClubGalleryDTO clubGalleryDTO,
-//							@RequestParam("image") MultipartFile image) {
-//
-//		if (!image.isEmpty()) {
-//
-//			String imagePath = saveImage(image);
-//			clubGalleryDTO.setImage(imagePath);
-//		}
+//	public String galleryok(Model model, ClubGalleryDTO clubGalleryDTO) {
 //
 //		int result = dao.clubGalleryAdd(clubGalleryDTO);
 //
-//			if (result > 0) {
-//				return "redirect:"; // 성공 시 리다이렉트
-//			} else {
-//				model.addAttribute("error", "모임 사진첩에 사진을 등록하셨습니다.");
-//				return "redirect:/gallery"; // 실패 시 다시 폼으로
-//			}
-//	}
-
-	@PostMapping ("/galleryok.do")
-	public String galleryok(Model model,  @RequestParam("image") MultipartFile attach, HttpServletRequest request) {
-		ClubGalleryDTO clubGalleryDTO = new ClubGalleryDTO();
-		clubGalleryDTO.setClubGalleryId(request.getParameter("clubGalleryId"));
-		// clubId와 scheduleId를 사용하지 않음
-		// clubGalleryDTO.setClubId(request.getParameter("clubId")); // clubId 제거
-		// clubGalleryDTO.setScheduleId(request.getParameter("scheduleId")); // scheduleId 제거
-		clubGalleryDTO.setGalleryDate(request.getParameter("galleryDate")); // 필요 시 변환
-		clubGalleryDTO.setGalleryImage(attach.getOriginalFilename());
-
-		// 파일 저장 로직 제거 (메모리에만 저장)
-//		if (!attach.isEmpty()) {
-//			// 파일을 메모리에서 처리하거나, 다른 방식으로 사용
-//			// 예: 이미지 데이터를 DB에 저장하는 로직 추가
+//		if(result == 1) {
+//			return "redirect:/club/gallery";
+//		} else {
+//			return "redirect:/club/gallery";
 //		}
-
-		int result = dao.clubGalleryAdd(clubGalleryDTO);
-
-		if (result > 0) {
-			return "redirect:/gallery"; // clubId를 사용하지 않으므로 제거
-		} else {
-			model.addAttribute("error", "사진 등록에 실패했습니다. 다시 시도해 주세요.");
-			return "redirect:/gallery"; // clubId를 사용하지 않으므로 제거
-		}
-
-	}
-
-
-//	private String saveImage(MultipartFile file) {
-////		String fileName = file.getOriginalFilename();
-//		String filename = getFileName(attach.getOriginalFilename());
-//		String filePath = "/resources/static/images/club/" + fileName; // 저장할 경로 설정
-//		System.out.println("file"+file);
-//
-//		try {
-//			File destinationFile = new File(filePath);
-//			file.transferTo(destinationFile); // 파일 저장
-//		} catch (IOException e) {
-//			e.printStackTrace();
-//		}
-//
-//		return filePath; // 저장된 파일 경로 반환
 //	}
 
 	@GetMapping("/member")
