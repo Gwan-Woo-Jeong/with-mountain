@@ -4,7 +4,7 @@ import lombok.Data;
 
 @Data
 public class ChatMemberDTO {
-	private int chatMemberID;
-	private int chatId;
-	private int memberId;
+	private String chatMemberId;
+	private String chatId;
+	private String memberId;
 }

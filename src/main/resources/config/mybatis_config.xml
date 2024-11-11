@@ -16,8 +16,9 @@
 		<typeAlias type="com.test.hike.dto.UserInfoDTO" alias="UserInfoDTO"/> <!-- UserInfoDTO 추가 -->
 		<typeAlias type="com.test.hike.dto.CommunityBoardDTO" alias="CommunityBoardDTO"/>
 		<typeAlias type="com.test.hike.dto.CommentsDTO" alias="CommentsDTO"/>
+		<typeAlias type="com.test.hike.dto.MemberDTO" alias="MemberDTO" />
 	</typeAliases>
-	
+
 	
 	<!-- Mapper 설정 추가 -->
 	<mappers>

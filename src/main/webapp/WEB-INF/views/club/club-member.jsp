@@ -12,7 +12,7 @@
 
 		<!-- 팝업 닫기 버튼-->
 		<div class="popup-close">
-			<button type="button" class="popup-close-btn" onclick='popupClose();'>
+			<button type="button" class="popup-close-btn" onclick='popupClose("#member-popup");'>
 				<img class="close-logo" src="${path}/resources/static/images/close.svg" alt="닫기">
 			</button>
 		</div>
@@ -65,7 +65,7 @@
 
 		<!-- 팝업 닫기 버튼-->
 		<div class="popup-close">
-			<button type="button" class="popup-close-btn" onclick='popupClose();'>
+			<button type="button" class="popup-close-btn" onclick='popupClose("#chat-popup");'>
 				<img class="close-logo" src="${path}/resources/static/images/close.svg" alt="닫기">
 			</button>
 		</div>
@@ -111,12 +111,12 @@
 
 	//팝업창 닫기
 	function popupClose() {
+		// 모든 팝업을 닫기 위한 처리
+		$('#member-popup, #chat-popup').css('display', 'none');
 		$('html, body').css({
 			overflow: 'visible',
 			height: '100%'
 		});
-		$('#member-popup').css('display', 'none');
-		$('#chat-popup').css('display', 'none');
 	}
 
 	//채팅 팝업창 띄우기

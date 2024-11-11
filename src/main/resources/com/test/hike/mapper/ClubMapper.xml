@@ -16,25 +16,27 @@
 		<result property="clubImage" column="image"/>
 		<result property="clubCreateDate" column="create_date"/>
 		<result property="clubCode" column="code"/>
+		<result property="clubMemberCount" column="clubMemberCount"/>
 	</resultMap>
 
-	<select id="clubList"  resultMap="ClubDTOMap">
+	<select id="clubList" resultMap="ClubDTOMap">
 		SELECT
 		c.club_id AS club_id,
 		c.location_id AS location_id,
 		c.name AS name,
-		c.is_private AS isPrivate,
+		c.is_private AS is_private,
 		c.max_member AS max_member,
 		c.intro AS intro,
 		c.image AS image,
 		c.create_date AS create_date,
 		c.code AS code,
 		l.name AS locationName
+		,(SELECT COUNT(*) FROM Member m WHERE m.club_id = c.club_id) AS clubMemberCount
 		FROM club c JOIN location l ON c.location_id = l.location_id
-		order by club_id desc
+		ORDER BY c.club_id DESC
 	</select>
 
-<!-- 모임 프로필 정보 -->
+	<!-- 모임 프로필 정보 -->
 
 	<select id="clubView" parameterType="String" resultMap="ClubDTOMap">
 		SELECT * from club where club_id = #{clubId}
@@ -52,12 +54,12 @@
 		select * from club where club_id = #{clubId}
 	</select>
 
-<!-- 모임 사진첩 리스트 -->
+	<!-- 모임 사진첩 리스트 -->
 	<select id="galleryList" parameterType="String" resultMap="ClubGalleryDTOMap">
 		select * from clubGallery where club_id = #{clubId}
 	</select>
 
-<!-- 모임원 정보 -->
+	<!-- 모임원 정보 -->
 	<resultMap id="clubViewMemberInfo" type="ClubDTO">
 		<id property="clubId" column="club_id"/>
 
@@ -76,20 +78,20 @@
 	<!-- SQL 쿼리 -->
 	<select id="clubViewMember" parameterType="String" resultMap="clubViewMemberInfo">
 		select c.club_id as club_id,
-			m.member_id as member_id,
-			m.user_id as user_id,
-			m.regdate as regdate,
-			u.name as name,
-			u.profile_image as profile_image
+		m.member_id as member_id,
+		m.user_id as user_id,
+		m.regdate as regdate,
+		u.name as name,
+		u.profile_image as profile_image
 		from club c
-			inner join member m
-			on c.club_id = m.club_id
-				inner join userinfo u
-				on m.user_id = u.user_id
+		inner join member m
+		on c.club_id = m.club_id
+		inner join userinfo u
+		on m.user_id = u.user_id
 		where c.club_id = #{clubId}
 	</select>
 
-<!--	사진첩 ResultMAp -->
+	<!--	사진첩 ResultMAp -->
 	<resultMap id="ClubGalleryDTOMap" type="ClubGalleryDTO">
 		<result property="clubGalleryId" column="club_gallery_id"/>
 		<result property="clubId" column="club_id"/>
@@ -101,6 +103,38 @@
 
 	<insert id="clubGalleryAdd" parameterType="ClubGalleryDTO">
 		insert into ClubGallery(club_gallery_id, club_id, schedule_id, gallery_date, image)
-			values (seqClubGallery.nextVal, 1, null, sysdate, #{galleryImage})
+		values (seqClubGallery.nextVal, 1, null, sysdate, #{galleryImage})
 	</insert>
+
+	<!-- 모임 추가하기 -->
+	<insert id="clubAdd" parameterType="String">
+		INSERT INTO Club(club_id, location_id, name, is_private, max_member, intro, image, create_date, code)
+		VALUES(seqClub.nextVal, #{clubLocationId}, #{clubName}, #{clubIsPrivate}, #{clubMaxMember}, #{clubIntro}, default, sysdate, #{clubCode})
+	</insert>
+
+
+<!--	<insert id="clubAdd" parameterType="String">-->
+<!--		<![CDATA[-->
+<!--		DECLARE-->
+<!--			v_club_id NUMBER; &#45;&#45; club_id를 저장할 변수 선언-->
+<!--		BEGIN-->
+<!--			&#45;&#45; Club 테이블에 데이터 삽입-->
+<!--			INSERT INTO Club(club_id, location_id, name, is_private, max_member, intro, image, create_date, code)-->
+<!--			VALUES(seqClub.nextVal, #{clubLocationId}, #{clubName}, #{clubIsPrivate}, #{clubMaxMember}, #{clubIntro}, default, sysdate, #{clubCode})-->
+<!--			RETURNING club_id INTO v_club_id; &#45;&#45; 방금 생성된 club_id를 변수에 저장-->
+
+<!--			&#45;&#45; Member 테이블에 데이터 삽입-->
+<!--			INSERT INTO Member(member_id, club_id, user_id, type, regdate, out_date, out_status)-->
+<!--			VALUES (seqMember.nextVal, v_club_id, 11, '0', sysdate, null, '0');-->
+
+<!--			&#45;&#45; COMMIT; &#45;&#45; MyBatis가 자동으로 트랜잭션을 관리하므로 필요 없음-->
+<!--		EXCEPTION-->
+<!--			WHEN OTHERS THEN-->
+<!--				ROLLBACK; &#45;&#45; 오류 발생 시 롤백-->
+<!--				RAISE; &#45;&#45; 예외를 다시 발생시킴-->
+<!--		END;-->
+<!--		]]>-->
+
+<!--	</insert>-->
+
 </mapper>

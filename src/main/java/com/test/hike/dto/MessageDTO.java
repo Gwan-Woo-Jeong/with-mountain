@@ -4,10 +4,10 @@ import lombok.Data;
 
 @Data
 public class MessageDTO {
-	private int messageId;
- 	private int chatMemberId;
-	private String content;
-	private String sendTime;
-	private String type;
+	private String messageId;
+ 	private String chatMemberId;
+	private String messageContent;
+	private String messageSendTime;
+	private String messageType;
 	
 }

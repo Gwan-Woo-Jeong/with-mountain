@@ -182,6 +182,33 @@
 	<div class="header-content">유저들이 가장 좋아하는 산들을 모아봤어요!</div>
 </div>
 
+	<!-- 모임 리스트 -->
+	<div id="clublist-joinlist">
+
+		<c:forEach items="${clubList}" var="clubDTO">
+			<div class="joinclub">
+				<img class="joinclub-image" src="${path}/resources/static/images/club/${clubDTO.clubImage}" alt="산악회 대표사진">
+				<div class="joinclub-content">
+					<div class="joinclub-header">
+						<div>${clubDTO.clubIntro}</div>
+						<div>${clubDTO.clubName}</div>
+					</div>
+					<div class="joinclub-footer">
+						<div>
+							<span><img class="clock-logo" src="${path}/resources/static/images/clock.svg" alt="가입날짜"></span>
+							<span>${clubDTO.clubCreateDate}</span>
+						</div>
+						<div>
+							<span><img class="users-logo" src="${path}/resources/static/images/users.svg" alt="멤버"></span>
+							<span>${clubDTO.clubMemberCount}/${clubDTO.clubMaxMember}</span>
+						</div>
+					</div>
+				</div>
+			</div>
+		</c:forEach>
+	</div>
+
+
 <!-- 5. 커뮤니티 인기글 모음 -->
 <div id="community-best-header">
 	<div class="header-title">커뮤니티 인기글 모음</div>

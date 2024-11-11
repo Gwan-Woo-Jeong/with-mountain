@@ -4,6 +4,6 @@ import lombok.Data;
 
 @Data
 public class ClubTagDTO {
-	private int clubTagId;
-	private String name;
+	private String clubTagId;
+	private String clubTagName;
 }
