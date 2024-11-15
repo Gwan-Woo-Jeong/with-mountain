@@ -11,7 +11,7 @@
 	</appender>
 	
 	<!-- Application Loggers -->
-	<logger name="com.test.hike">
+	<logger name="com.test.mybatis">
 		<level value="info" />
 	</logger>
 	
@@ -38,4 +38,28 @@
 		<appender-ref ref="console" />
 	</root>
 	
+	<logger name="jdbc.audit">
+		<level value="warn" />
+	</logger>
+	
+	<logger name="jdbc.resultset">
+		<level value="warn" />
+	</logger>
+	
+	<logger name="jdbc.connection">
+		<level value="warn" />
+	</logger>
+	
+	<logger name="jdbc.sqltiming">
+		<level value="debug" />
+	</logger>
+	
 </log4j:configuration>
+
+
+
+
+
+
+
+
