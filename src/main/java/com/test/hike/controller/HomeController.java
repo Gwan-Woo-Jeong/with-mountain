@@ -24,6 +24,7 @@ public class HomeController {
 
         return "redirect:/home";
     }
+    
 
     @GetMapping("home")
     public String index(Model model) {

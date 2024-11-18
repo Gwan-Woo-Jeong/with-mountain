@@ -146,6 +146,33 @@
   width: 430px;
 }
 
+.scroll-box::-webkit-scrollbar {
+    width: 8px;  /* 스크롤바의 너비 */
+}
+.scroll-box::-webkit-scrollbar-thumb {
+    height: 30%; /* 스크롤바의 길이 */
+    background: var(--gray05); /* 스크롤바의 색상 */
+
+    border-radius: 10px;
+}
+.scroll-box::-webkit-scrollbar-track {
+    background: var(--white);  /*스크롤바 뒷 배경 색상*/
+}
+.header-btn::-webkit-scrollbar {
+    width: 8px;  /* 스크롤바의 너비 */
+}
+.header-btn::-webkit-scrollbar-thumb {
+    height: 30%; /* 스크롤바의 길이 */
+    background: var(--gray05); /* 스크롤바의 색상 */
+
+    border-radius: 10px;
+}
+.header-btn::-webkit-scrollbar-track {
+    background: var(--white);  /*스크롤바 뒷 배경 색상*/
+}
+
+
+
   .header-btn {
   display: flex;
   flex-wrap: wrap;
@@ -198,4 +225,122 @@
     cursor: pointer; 
     transition: background-color 0.6s ease; 
 }
+
+
+.myactivities {
+	padding: 0 40px 40px 40px;	
+}
+
+.tab-container {
+    display: flex;
+    gap: 10px;
+    padding: 20px 20px 0 20px;
+    margin-bottom: 0; /* 하단 마진 제거 */
+}
+
+.tab-button {
+    /* flex: 1;  버튼들이 동일한 너비를 가지도록 */
+    width: 150px;
+    padding: 15px 30px;
+    border: none;
+    border-radius: 15px 15px 0 0;  /* 반원 형태 */
+    background-color: var(--gray07); /* 기본 배경색 */
+    color: var(--gray01);
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+/* 활성화된 버튼 스타일 */
+.tab-button.active {
+    background-color: var(--main);  /* 메인 컬러 */
+    color: white;
+}
+
+/* 호버 효과 */
+.tab-button:hover {
+    background-color: var(--light-green);
+}
+ 
+/* 활동기록 탭 내용 */
+.tab-content {
+	width: 100%;
+	height: 300px;
+	border: 1px solid var(--gray05);
+	border-radius: 10px;
+	padding: 10px;
+	margin-top: 0; /* 상단 마진 제거 */
+}
+ 
+/* 탭 내용 스타일 */
+.tab-pane {
+    display: none; /* 기본적으로 모든 내용 숨김 */
+    padding: 20px;
+}
+
+.tab-pane.active {
+    display: block; /* 활성화된 탭 내용만 보이기 */
+}
+
+/* 사진 게시판 사진 그리드 */
+.photo-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr); /* 4개의 열로 구성 */
+    gap: 20px; /* 그리드 간격 */
+    max-height: 470px; /* 원하는 높이로 조절 가능 */
+    overflow-y: auto; /* 세로 스크롤 활성화 */
+    margin-top: 0;
+}
+
+.myphoto-pic {
+    width: 100%;
+    aspect-ratio: 1 / 1; /* 정사각형 비율 유지 */
+    overflow: hidden;
+}
+
+.p-photo-pic {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* 이미지 비율 유지하면서 컨테이너에 맞춤 */
+    transition: transform 0.3s ease; /* 호버 효과를 위한 트랜지션 */
+}
+
+/* 선택적: 호버 효과 */
+.p-photo-pic:hover {
+    transform: scale(1.05);
+}
+
+/* 스크롤바 스타일링 (선택사항) */
+.photo-grid::-webkit-scrollbar {
+    width: 8px;
+}
+
+.photo-grid::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.photo-grid::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+.photo-grid::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+.board-grid {
+	display: grid;
+    grid-template-columns: repeat(1, 1fr); /* 1개의 열로 구성 */
+    gap: 20px; /* 그리드 간격 */
+    max-height: 470px; /* 원하는 높이로 조절 가능 */
+    overflow-y: hidden; /* 세로 스크롤 활성화 */
+    margin-top: 0;
+}
+
+
+/* 스크롤 높이 조정 */
+.mypagetitle {
+    scroll-margin-top: 300px; /* 메뉴바 높이에 맞게 조정 */
+}
+
 

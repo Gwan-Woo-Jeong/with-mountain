@@ -177,10 +177,11 @@
 </div>
 
 <!-- 4. 등산 예정 모임 -->
-<div id="hike-plan-club-header">
+<!-- <div id="hike-plan-club-header">
 	<div class="header-title"><span class="color-green">북한산</span> 등산 예정 모임</div>
 	<div class="header-content">유저들이 가장 좋아하는 산들을 모아봤어요!</div>
 </div>
+<<<<<<< Updated upstream
 <!-- 모임 리스트 -->
 <div id="clublist-joinlist">
 
@@ -208,13 +209,31 @@
 </div>
 
 
+=======
+ -->
+>>>>>>> Stashed changes
 <!-- 5. 커뮤니티 인기글 모음 -->
 <div id="community-best-header">
 	<div class="header-title">커뮤니티 인기글 모음</div>
 	<div class="header-content">등산에 대한 다양한 정보와 재미있는 이야기를 즐겨봐요!</div>
 </div>
 
-<script src="${path}/resources/static/js/home.js">
+<div class="myactivities"> <!-- 나의 활동기록 내용 -->
+
+<div class="tab-container">
+    <button class="tab-button" data-tab="free">자유 게시판</button>
+    <button class="tab-button" data-tab="photo">사진 게시판</button>
+    <button class="tab-button" data-tab="qna">QnA</button>
+</div>
+
+<div class="tab-content">
+    <div class="tab-pane" id="free"></div>
+    <div class="tab-pane" id="photo"></div>
+    <div class="tab-pane" id="qna"></div>
+</div>
 
 
-</script>
+</div>
+
+<script src="${path}/resources/static/js/home.js"></script>
+<script src="${path}/resources/static/js/mypage.js"></script>
