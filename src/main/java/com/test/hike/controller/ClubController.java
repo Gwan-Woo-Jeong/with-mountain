@@ -1,10 +1,9 @@
 package com.test.hike.controller;
 
-import java.util.List;
-
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-
+import com.test.hike.dao.ClubDAO;
+import com.test.hike.dto.ClubDTO;
+import com.test.hike.dto.ClubGalleryDTO;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -14,12 +13,15 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.test.hike.dao.ClubDAO;
-import com.test.hike.dto.ClubDTO;
-import com.test.hike.dto.ClubGalleryDTO;
+import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletRequest;
+import java.util.List;
 
-import lombok.RequiredArgsConstructor;
-
+/**
+ * ClubController.java
+ * 모임와 관련된 Controller입니다.
+ * @author Kim Yu-ri, Kim Yu-jin
+ */
 @Controller
 @RequiredArgsConstructor
 @RequestMapping("/club")
@@ -31,6 +33,11 @@ public class ClubController {
 
 	private final ClubDAO dao;
 
+	/**
+	 * 등록된 모든 모임의 리스트 페이지를 출력하는 method 입니다.
+	 * @param model
+	 * @return 모임 리스트 Index 페이지
+	 */
 	@GetMapping("")
 	public String index(Model model) {
 
@@ -40,16 +47,21 @@ public class ClubController {
 		return "club.index";
 	}
 
-	@GetMapping("/template")
-	public String template() {
-		return "club.template";
-	}
-
+	/**
+	 * 모임을 둥록하는 페이지를 출력하는 method 입니다.
+	 * @return 모임을 등록하는 Add 페이지
+	 */
 	@GetMapping("/add")
 	public String add() {
 		return "club.add";
 	}
 
+	/**
+	 * 선택한 모임 페이지를 출력하는 method 입니다.
+	 * @param model
+	 * @param clubId
+	 * @return 선택한 모임 View 페이지
+	 */
 	@GetMapping("/view")
 	public String view(Model model, String clubId) {
 
@@ -59,6 +71,16 @@ public class ClubController {
 			return "club.view";
 	}
 
+	/**
+	 * 모임의 스케줄 정보를 조회하는 메서드입니다.
+	 *
+	 * 이 메서드는 clubID를 기반으로 클럽의 스케줄 정보를 데이터베이스에서 조회하고,
+	 * 해당 정보를 모델에 추가하여 뷰에 전달합니다.
+	 *
+	 * @param model 뷰에 전달할 데이터를 담는 모델 객체
+	 * @param clubId 조회할 모임의 ID
+	 * @return 모임 스케줄 정보를 표시하는 뷰의 이름
+	 */
 	@GetMapping("/scheduler")
 	public String scheduler(Model model, String clubId) {
 
@@ -69,7 +91,16 @@ public class ClubController {
 		return "club.scheduler";
 	}
 
-
+	/**
+	 * 모임의 하이킹 정보를 조회하는 메서드입니다.
+	 *
+	 * 이 메서드는 모임 ID를 기반으로 모임의 하이킹 정보를 데이터베이스에서 조회하고,
+	 * 해당 정보를 모델에 추가하여 뷰에 전달합니다.
+	 *
+	 * @param model 뷰에 전달할 데이터를 담는 모델 객체
+	 * @param clubId 조회할 모임의 ID
+	 * @return 모임 하이킹 정보를 표시하는 뷰의 이름
+	 */
 	@GetMapping("/hike")
 	public String hike(Model model, String clubId) {
 
@@ -79,6 +110,16 @@ public class ClubController {
 		return "club.hike";
 	}
 
+	/**
+	 * 모임의 갤러리 정보를 조회하는 메서드입니다.
+	 *
+	 * 이 메서드는 모임 ID를 기반으로 모임의 갤러리 정보를 데이터베이스에서 조회하고,
+	 * 해당 정보를 모델에 추가하여 뷰에 전달합니다.
+	 *
+	 * @param model 뷰에 전달할 데이터를 담는 모델 객체
+	 * @param clubId 조회할 모임의 ID
+	 * @return 모임 갤러리 정보를 표시하는 뷰의 이름
+	 */
 	@GetMapping("/gallery")
 	public String gallery(Model model,
 						  @RequestParam String clubId) {
@@ -158,16 +199,37 @@ public class ClubController {
 //		return filePath; // 저장된 파일 경로 반환
 //	}
 
+	/**
+	 * 선택한 모임의 멤버 페이지를 출력하는 method 입니다.
+	 * @return 선택한 모임의 멤버 View 페이지
+	 */
 	@GetMapping("/member")
 	public String member() {
 		return "club.club-member";
 	}
 
+	/**
+	 * 선택한 모임의 정보 수정 페이지를 출력하는 method 입니다.
+	 * @return 선택한 모임의 정보 수정 View 페이지
+	 */
 	@GetMapping("/edit")
 	public String edit() {
 		return "club.edit";
 	}
 
+	/**
+	 * 모임을 추가하는 메서드입니다.
+	 * 이 메서드는 HTTP POST 요청을 통해 클럽 정보를 받아와서
+	 * DB Club테이블에 데이터를 추가합니다. 요청 파라미터는
+	 * {@link HttpServletRequest}를 통해 전달되며, club 정보는
+	 * {@link ClubDTO} 객체에 설정됩니다.
+	 *
+	 * @param request club 정보를 포함하는 HTTP 요청 객체
+	 * @param model 뷰에 전달할 데이터를 담는 모델 객체
+	 * @return club 추가 결과에 따라 리다이렉트할 URL
+	 *         - 성공 시 "/home"으로 리다이렉트
+	 *         - 실패 시 "/add"로 리다이렉트하며 오류 메시지를 모델에 추가
+	 */
 	@PostMapping("/addok.do")
 	public String addClub(HttpServletRequest request, Model model) {
 
