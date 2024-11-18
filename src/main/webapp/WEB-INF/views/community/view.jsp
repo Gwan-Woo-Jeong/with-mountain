@@ -13,7 +13,7 @@
 	</div>
 	<div class="view-btn">
     	<div class="del-container">
-			<button class="del" onclick="confirmDelete()">삭제하기</button>
+    		<button id="deleteBtn" class="del">삭제하기</button>
 		</div>
 		<div class="edit-container">
         	<button class="edit" onclick="location.href='${path}/community/edit?cm_board_id=${communityBoard.cm_board_id}'">수정하기</button>

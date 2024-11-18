@@ -1,5 +1,6 @@
 import {PATHS} from "./constants.js";
 
+
 // DOM이 로드된 후 실행될 초기화 함수들
 $(document).ready(function () {
     checkLoginRequired();
