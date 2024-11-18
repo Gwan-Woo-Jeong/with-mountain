@@ -1,10 +1,20 @@
+/**
+ * view.jsp가 참조하는 JavaScript 파일입니다.
+ * 등산로 데이터와 Kakao 지도 API 기능을 혼합하여 view.jsp로 출력하는 용도로 사용됩니다.
+ * 일부 설정은 common.js를 참조해야 합니다.
+ * @author Kim Young-jin, Jeong Gwan-woo
+ */
+
 import {initMap} from './common.js';
 
 const MIN_ZOOM_LEVEL = 7;
 const MAX_ZOOM_LEVEL = 1;
 
+/**
+ * Kakao 지도 API의 원활한 이용을 위해, 화면 로드가 전부 완료된 후 실행되도록 한 method입니다.
+ */
 $(document).ready(async function () {
-    const data = await loadJSON(); // For Test
+    //const data = await loadJSON(); // For Test
 
     //console.log(data);
 
@@ -13,6 +23,11 @@ $(document).ready(async function () {
     const mtY = urlParams.get('mtY');
     const mtX = urlParams.get('mtX');
 
+    /**
+     * Kakao 지도 API 사용을 위한 변수입니다.
+     * 1. 그려질 지도의 크기와 설정을 사전 정의합니다.
+     * 자세한 설명은 Kakao 지도 API 공식 문서에서 확인하실 수 있습니다.
+     */
     // 1. 그려질 지도의 크기와 설정을 사전 정의
     const map = initMap(
         '#view-map',
@@ -21,19 +36,20 @@ $(document).ready(async function () {
         MIN_ZOOM_LEVEL,
         MAX_ZOOM_LEVEL);
 
-    // 2. 프로그램으로 JSON 데이터 가져오기
-    async function loadJSON() {
-        try {
-            const jsonPath = new URL('resources/static/data/mountain.json', 'http://localhost:8090/hike/');
-            const response = await fetch(jsonPath); // JSON 파일 경로
-            if (!response.ok) {
-                throw new Error('JSON 불러오기 결과 실패');
-            }
-            return await response.json();
-        } catch (error) {
-            console.error('JSON: 불러오는 도중 실패', error);
-        }
-    }
+
+    // 2. 프로그램으로 JSON 데이터 가져오기 - Controller에서 서버의 데이터를 직접 가져오는 것으로 대체
+    // async function loadJSON() {
+    //     try {
+    //         const jsonPath = new URL('resources/static/data/mountain.json', 'http://localhost:8090/hike/');
+    //         const response = await fetch(jsonPath); // JSON 파일 경로
+    //         if (!response.ok) {
+    //             throw new Error('JSON 불러오기 결과 실패');
+    //         }
+    //         return await response.json();
+    //     } catch (error) {
+    //         console.error('JSON: 불러오는 도중 실패', error);
+    //     }
+    // }
 
     // JSON형 데이터 data의 좌표값에 접근
     console.log(data);
@@ -207,4 +223,5 @@ $(document).ready(async function () {
     $('.switch-mode').click(() => {
         alert('추후 업데이트 예정입니다.');
     });
+    
 });
