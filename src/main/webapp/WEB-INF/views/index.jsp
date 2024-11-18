@@ -181,7 +181,6 @@
 	<div class="header-title"><span class="color-green">북한산</span> 등산 예정 모임</div>
 	<div class="header-content">유저들이 가장 좋아하는 산들을 모아봤어요!</div>
 </div>
-<<<<<<< Updated upstream
 <!-- 모임 리스트 -->
 <div id="clublist-joinlist">
 
@@ -209,9 +208,6 @@
 </div>
 
 
-=======
- -->
->>>>>>> Stashed changes
 <!-- 5. 커뮤니티 인기글 모음 -->
 <div id="community-best-header">
 	<div class="header-title">커뮤니티 인기글 모음</div>
