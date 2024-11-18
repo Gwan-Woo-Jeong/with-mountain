@@ -1,9 +1,12 @@
-//resources/static/js/community.js
-
-// community.js
+/**
+ * Community 관련 jsp가 참조하는 JavaScript 파일입니다.
+ * @author Son Min-ji
+ */
 
 //----------글쓰기 툴 라이브러리
-// MutationObserver를 이용한 DOM 변화 감지 예시
+/**
+ * add.jsp와 edit.jsp 글 작성 및 수정 폼에 사용되는 라이브러리 method입니다.
+ */
 document.addEventListener("DOMContentLoaded", function() {
     // Quill 에디터 초기화
     var quill = new Quill('#content-container', {
@@ -50,98 +53,72 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 
 
-
-// confirmDelete 삭제 함수
+//글 삭제
+/**
+ * view.jsp에서 글 삭제하기 버튼에 실행되도록 한 method입니다.
+ */
 document.addEventListener('DOMContentLoaded', function () {
     const deleteButton = document.getElementById('deleteBtn');
     
-    deleteButton.addEventListener('click', confirmDelete); // click 이벤트를 JavaScript로 처리
+    deleteButton.addEventListener('click', confirmDelete);
 });
 
 function confirmDelete() {
     if (confirm("정말 삭제하시겠습니까?")) {
-        console.log("삭제되었습니다.");
+        fetch('/delete-endpoint', { 
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ })
+        })
+        .then(response => {
+            if (response.ok) {
+                // 삭제가 성공적으로 이루어졌다면 다른 페이지로 리다이렉션
+                window.location.href = '/success-page'; // 성공 후 이동할 페이지 URL
+            } else {
+                alert("삭제에 실패했습니다.");
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert("삭제 중 오류가 발생했습니다.");
+        });
     } else {
         console.log("삭제 취소됨");
     }
 }
 
 
-    // 댓글 등록
-    function submitComment() {
-        var commentContent = document.getElementById("new-comment").value;
-        if(commentContent.trim() === "") {
-            alert("댓글을 입력해주세요.");
-            return;
-        }
-        // Ajax 요청으로 댓글 등록 처리
-        // 예시로 서버로 전달하는 코드입니다.
-        $.ajax({
-            url: "${path}/community/addComment",
-            type: "POST",
-            data: {
-                content: commentContent,
-                boardId: "${communityBoard.cm_board_id}"
-            },
-            success: function(response) {
-                // 댓글 등록 후, 댓글 목록을 갱신하는 로직
-                alert("댓글이 등록되었습니다.");
-                location.reload(); // 새로 고침 (댓글 목록 갱신)
-            },
-            error: function(xhr, status, error) {
-                alert("댓글 등록에 실패했습니다.");
-            }
-        });
+
+function submitComment() {
+    // 댓글 내용 가져오기
+    const commentText = document.getElementById('new-comment').value;
+
+    // 댓글 내용이 비어있지 않은지 확인
+    if (!commentText.trim()) {
+        alert('댓글 내용을 입력해주세요.');
+        return;
     }
 
-    // 댓글 삭제
-    function deleteComment(commentId) {
-        if(confirm("정말로 이 댓글을 삭제하시겠습니까?")) {
-            $.ajax({
-                url: "${path}/community/deleteComment",
-                type: "POST",
-                data: {
-                    commentId: commentId
-                },
-                success: function(response) {
-                    alert("댓글이 삭제되었습니다.");
-                    location.reload(); // 새로 고침 (댓글 목록 갱신)
-                },
-                error: function(xhr, status, error) {
-                    alert("댓글 삭제에 실패했습니다.");
-                }
-            });
+    // AJAX 요청
+    $.ajax({
+        url: `${path}/community/comment`, // 댓글 등록을 위한 URL
+        type: 'POST', // 요청 방식
+        contentType: 'application/json', // 전송할 데이터의 형식
+        data: JSON.stringify({ comment: commentText }), // 전송할 데이터
+        success: function(response) {
+            console.log('서버 응답:', response);
+            // 성공 시 처리 (댓글 목록 갱신 등)
+            alert('댓글이 등록되었습니다.'); // 사용자에게 알림
+            document.getElementById('new-comment').value = ''; // 입력 필드 초기화
+            // 댓글 목록을 갱신하는 함수 호출 (필요 시)
+            // loadComments(); // 예시: 댓글 목록을 다시 불러오는 함수
+        },
+        error: function(a, b, c) {
+            console.log('에러 발생:', a, b, c); // 에러 처리
+            alert('댓글 등록 중 오류가 발생했습니다.'); // 사용자에게 오류 알림
         }
-    }
-
-    // 댓글 수정
-    function editComment(commentId) {
-        var newContent = prompt("수정할 댓글을 입력하세요:");
-        if(newContent != null && newContent.trim() !== "") {
-            $.ajax({
-                url: "${path}/community/editComment",
-                type: "POST",
-                data: {
-                    commentId: commentId,
-                    newContent: newContent
-                },
-                success: function(response) {
-                    alert("댓글이 수정되었습니다.");
-                    location.reload(); // 새로 고침 (댓글 목록 갱신)
-                },
-                error: function(xhr, status, error) {
-                    alert("댓글 수정에 실패했습니다.");
-                }
-            });
-        }
-    }
-    
-document.querySelector('.edit-post').addEventListener('click', function() {
-    // content-container 안의 내용을 textarea에 복사
-    var contentText = document.getElementById('content-container').innerHTML;
-    document.getElementById('content').value = contentText;
-    
-    // value가 올바르게 설정됐는지 확인
-    console.log(document.getElementById('content').value);
-});
+    });
+}
     
