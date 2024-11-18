@@ -32,7 +32,7 @@ public class CourseController {
 
     /**
      * 전국의 산을 선택하는 코스 페이지를 출력하는 method 입니다.
-     * @param model
+     * @param model 산 선택 정보가 들어갈 객체
      * @return 산 선택 View 페이지
      */
     @GetMapping("")
@@ -47,8 +47,8 @@ public class CourseController {
 
     /**
      * Oracle DB에서 등산로 관련 데이터를 가져온 후, 등산로 커스텀 페이지에 전달하면서 페이지를 호출하는 method 입니다.
-     * @param model
-     * @param mtId
+     * @param model 등산로 관련 데이터가 들어갈 객체
+     * @param mtId 사용자가 선택한 산의 고유번호
      * @return 산 등산로 커스텀 View 페이지
      */
     @GetMapping("view")
@@ -78,10 +78,10 @@ public class CourseController {
 
     /**
      * 사용자가 선택한 등산로 커스텀 정보를 사용자 정보로 보내는 데 사용하는 method 입니다.
-     * @param lines
-     * @param hikeTime
-     * @param hikeDistance
-     * @param model
+     * @param lines 등산로 구간의 수
+     * @param hikeTime 등산로 구간의 총 소요 시간
+     * @param hikeDistance 등산로 구간의 총 거리
+     * @param model 등산로 정보를 담아 보낼 객체
      * @return 산 등산로 커스텀 view 페이지
      */
     @PostMapping("view")
@@ -95,7 +95,7 @@ public class CourseController {
 
     /**
      * 산 등산로 커스텀 view 페이지에서 사용자가 커스터마이징한 등산로의 정보를 DB 서버로 전송하는 method 입니다.
-     * @return view페이지를 redirecting 하지만, 사용자의 등산로 구간번호, 구간 길이, 소요 시간 정보를 가지고 있습니다.
+     * @return 사용자의 커스터마이징된 등산로 구간번호, 구간 길이, 소요 시간 정보를 가진 채로 redirect 합니다.
      */
     @PostMapping("addCourseData")
     public String addCourseData() {
