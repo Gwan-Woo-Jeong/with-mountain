@@ -79,7 +79,7 @@
 		SELECT coord_id, mt_id, road_id, road_km, road_level, road_time_up, road_time_down, road_seq, road_x, road_y FROM ViewHikingRoad
 	</select>
 
-	<insert id="CustomCourseDTO">
-		INSERT INTO CourseItem (course_item_id, road_id, course_id, course_order) VALUES (seqCourseItem.nextVal,
-	</insert>
+	<!--<insert id="CustomCourseDTO">
+		INSERT INTO CourseItem (course_item_id, road_id, course_id, course_order) VALUES (seqCourseItem.nextVal, #{lineNo},
+	</insert>-->
 </mapper>

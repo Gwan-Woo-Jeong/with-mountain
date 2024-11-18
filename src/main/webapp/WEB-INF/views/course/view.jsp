@@ -1,3 +1,4 @@
+
 <%@ page contentType="text/html; charset=UTF-8"
          pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
@@ -6,8 +7,13 @@
 
 <script>
     // For Test
-    <%--const data = JSON.parse('${data}');--%>
-    // view.js에서 spotListJson을 사용하기 위한 작업
+    /**
+     * view.js에서 등산로 구간 정보 데이터를 사용하기 위한 사전 작업용 변수입니다.
+     */
+    const data = JSON.parse('${data}');
+    /**
+     * view.js에서 등산로 지점 정보 데이터를 사용하기 위한 사전 작업용 변수입니다.
+     */
     const spotListJson =  ${spotListJson};
 </script>
 <meta name="_csrf" th:content="${_csrf.token}"/>
