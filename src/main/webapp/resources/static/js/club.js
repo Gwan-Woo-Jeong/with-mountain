@@ -1,5 +1,8 @@
 
-/* 플러스버튼으로 버튼 안보이게 하기 */
+/**
+ * 플러스 버튼을 클릭할 때 otpbtn과 addbtn의 가시성을 토글하는 함수입니다.
+ * 플러스 버튼 이미지에 rotate 클래스를 추가하거나 제거합니다.
+ */
 function plusBtnToggle() {
   
   // 토글 할 버튼 선택 (otpbtn,addbtn)
@@ -27,7 +30,10 @@ function plusBtnToggle() {
 }
 
 
-//팝업창 띄우기
+/**
+ * 팝업창을 띄우는 함수입니다.
+ * 팝업창이 열릴 때 페이지의 스크롤을 비활성화합니다.
+ */
 function showModal() {
     $('html, body').css({
         overflow: 'hidden',
@@ -36,7 +42,10 @@ function showModal() {
     $('#popup').css('display', 'flex');
 }
 
-//팝업창 닫기
+/**
+ * 팝업창을 닫는 함수입니다.
+ * 팝업창이 닫힐 때 페이지의 스크롤을 활성화합니다.
+ */
 function popupClose() {
 	$('html, body').css({
         overflow: 'visible',
@@ -46,7 +55,10 @@ function popupClose() {
 }
 
 
-// 초대 코드 랜덤 생성하기
+/**
+ * 6자리의 랜덤 초대 코드를 생성하여 입력 필드에 설정하는 함수입니다.
+ * 생성된 코드는 대문자 알파벳과 숫자로 구성됩니다.
+ */
 function generateRandomCode() {
     // 랜덤 코드 생성 (예: 6자리의 알파벳과 숫자 조합)
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
