@@ -146,7 +146,7 @@ public class CommunityController {
     //글 상세
     /**
      * Oracle DB에서 커뮤니티 관련 데이터를 가져온 후, 상세보기 페이지에 전달하면서 페이지를 호출하는 method 입니다.
-     * @param model
+     * @param model 뷰에 전달할 데이터를 저장하는 모델 객체.
      * @param cm_board_id 조회할 게시글의 고유 ID.
      * @return 해당 게시글의 상세 정보 및 관련 데이터를 보여주는 "community.view" 반환.
      */

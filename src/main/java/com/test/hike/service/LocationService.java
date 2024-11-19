@@ -11,7 +11,7 @@ import com.test.hike.mapper.LocationMapper;
 
 /**
  * 활동지역 정보를 관리하는 Service 클래스입니다.
- * @author user Lee Hye-mi
+ * @author Lee Hye-mi
  *
  */
 @Service
@@ -19,11 +19,12 @@ public class LocationService {
     
     @Autowired
     private LocationMapper locationMapper;  // SqlSession 대신 Mapper 직접 주입
-    
+
     /**
      * 모든 활동지역 정보를 조회하는 method입니다.
-     * @return List<LocationDTO> 전체 활동지역 목록
-     * 	조회 실패 시 빈 ArrayList 반환
+     *
+     * @return List&lt;LocationDTO&gt; 전체 활동지역 목록.
+     *         조회 실패 시 빈 ArrayList 반환.
      */
     public List<LocationDTO> getAllLocations() {
         try {

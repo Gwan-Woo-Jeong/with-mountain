@@ -26,6 +26,7 @@ public class HomeController {
 
     /**
      * home으로 리디렉션 하는 method입니다.
+     * @param redirectAttributes 리디렉션 시에 사용할 플래시 속성을 추가하기 위한 객체
      * @return home 리디렉션을 반환.
      */
     @GetMapping("/")

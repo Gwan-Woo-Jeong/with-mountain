@@ -35,7 +35,7 @@ public class ClubController {
 
 	/**
 	 * 등록된 모든 모임의 리스트 페이지를 출력하는 method 입니다.
-	 * @param model
+	 * @param model 뷰에 전달할 데이터를 저장하는 모델 객체.
 	 * @return 모임 리스트 Index 페이지
 	 */
 	@GetMapping("")
@@ -58,8 +58,8 @@ public class ClubController {
 
 	/**
 	 * 선택한 모임 페이지를 출력하는 method 입니다.
-	 * @param model
-	 * @param clubId
+	 * @param model 뷰에 전달할 데이터를 저장하는 모델 객체.
+	 * @param clubId 클럽의 ID
 	 * @return 선택한 모임 View 페이지
 	 */
 	@GetMapping("/view")

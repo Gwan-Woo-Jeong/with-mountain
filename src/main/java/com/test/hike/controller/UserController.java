@@ -30,7 +30,7 @@ import com.test.hike.service.UserService;
 /**
  * UserController.java
  * 회원가입 및 로그인에 대한 사용자의 정보와 관련된 Controller입니다.
- * @author user Lee Hye-mi
+ * @author Lee Hye-mi
  *
  */
 
@@ -46,7 +46,7 @@ public class UserController {
 
     /**
      * 전체 활동지역 목록을 조회하는 method입니다.
-     * @return List<LocationDTO> 모든 활동지역 정보를 포함하는 리스트
+     * @return 모든 활동지역 정보를 포함하는 리스트. 리스트 요소는 {@link LocationDTO}.
      */
     @GetMapping("/getLocations")
     @ResponseBody
@@ -109,26 +109,27 @@ public class UserController {
     //     }
     //
     //     return response;
-    // }
+    //  }
 
     /**
      * 회원가입을 처리하는 method입니다.
-     * 이메일 중복 검사,프로필 이미지 저장, 사용자 정보 저장을 수행합니다.
-     * 
+     * 이메일 중복 검사, 프로필 이미지 저장, 사용자 정보 저장을 수행합니다.
+     *
      * @param user 회원가입할 사용자 정보
      * @param userToken 사용자 인증 토큰 정보
      * @param profileImage 사용자 프로필 이미지 파일
      * @param locationId 사용자 활동 지역
      * @param request 서버 요청 정보
-     * @return Map<String, Object> 다음 정보를 포함하는 응답:
- *         - success: 회원가입 성공 여부 (boolean)
- *         - message: 처리 결과 메시지 (String)
- *         - errors: 유효성 검사 실패 시 오류 정보 (Map<String, String>)
- *         - email: 이메일 중복 오류
- *         - locationId: 지역 선택 오류
- *         - profileImage: 이미지 저장 오류
-     */
-    // 회원가입 처리
+     * @return Map&lt;String, Object&gt; 다음 정보를 포함하는 응답:
+     *         <ul>
+     *         <li>success: 회원가입 성공 여부 (boolean)</li>
+     *         <li>message: 처리 결과 메시지 (String)</li>
+     *         <li>errors: 유효성 검사 실패 시 오류 정보 (Map&lt;String, String&gt;)</li>
+     *         <li>email: 이메일 중복 오류</li>
+     *         <li>locationId: 지역 선택 오류</li>
+     *         <li>profileImage: 이미지 저장 오류</li>
+     *         </ul>
+     */    // 회원가입 처리
     @PostMapping("/signup.do")
     @ResponseBody
     public Map<String, Object> signup(@ModelAttribute UserInfoDTO user,
@@ -256,18 +257,22 @@ public class UserController {
         }
     }
 
-    
+
     /**
-     * 사용자의 프로필 이미지를 업데이트하는 method입니다. 
+     * 사용자의 프로필 이미지를 업데이트하는 method입니다.
      * 업로드된 이미지를 서버에 저장하고 DB에 경로를 업데이트합니다.
+     *
      * @param profileImage 사용자가 업로드한 새로운 프로필 이미지 파일
      * @param request 서버 경로 정보를 얻기 위한 HttpServletRequest 객체
      * @param session 로그인 사용자 정보가 저장된 세션 객체
-     * @return Map<String, Object> 다음 정보를 포함한 응답 맵:
-     * 			- success: 업데이트 성공 여부(boolean)
-     * 			- newImageUrl: 성공 시 새 이미지 경로(String)
-     * 			- message: 실패 시 에러 메시지(String)
+     * @return Map&lt;String, Object&gt; 다음 정보를 포함한 응답 맵:
+     *         <ul>
+     *         <li>success: 업데이트 성공 여부 (boolean)</li>
+     *         <li>newImageUrl: 성공 시 새 이미지 경로 (String)</li>
+     *         <li>message: 실패 시 에러 메시지 (String)</li>
+     *         </ul>
      */
+
     // 프로필 이미지 업데이트 (로그인 상태에서만 호출)
     @PostMapping("/updateProfile")
     @ResponseBody

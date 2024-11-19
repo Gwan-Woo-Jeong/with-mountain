@@ -21,11 +21,13 @@ public class LocationDAO {
     private SqlSession sqlSession;
     
     private static final String NAMESPACE = "com.test.hike.mapper.LocationMapper.";
-    
+
     /**
      * 모든 활동지역 정보를 조회하는 method입니다.
-     * @return List<LocationDTO> 전체 활동지역 목록, 조회 실패 시 빈 ArrayList 반환
+     *
+     * @return List&lt;LocationDTO&gt; 전체 활동지역 목록. 조회 실패 시 빈 ArrayList 반환.
      */
+
     public List<LocationDTO> getAllLocations() {
         try {
             return sqlSession.selectList(NAMESPACE + "getAllLocations");
