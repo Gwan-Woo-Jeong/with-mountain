@@ -69,8 +69,8 @@ public class UserController {
 
     
     /**
-     * 
-     * @return
+     * 사용자의 로그인 여부에 따라 페이지를 리디렉션하는 페이지
+     * @return redirect 페이지를 반환
      */
     @GetMapping("/redirect")
     public String redirect() {
