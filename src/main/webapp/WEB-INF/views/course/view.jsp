@@ -10,11 +10,11 @@
     /**
      * view.js에서 등산로 구간 정보 데이터를 사용하기 위한 사전 작업용 변수입니다.
      */
-    const data = JSON.parse('${data}');
+    <%--const data = JSON.parse('${data}');--%>
     /**
      * view.js에서 등산로 지점 정보 데이터를 사용하기 위한 사전 작업용 변수입니다.
      */
-    const spotListJson =  ${spotListJson};
+    const spotList =  ${spotListJson};
 </script>
 <meta name="_csrf" th:content="${_csrf.token}"/>
 <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
@@ -55,11 +55,11 @@
                     </li>
                     <div style="text-align: left">
                         <hr>
-                        <p id="hike-lines">선택된 구간 수:   <span></span> 개</p>
+                        <p id="hike-lines">선택된 구간 수:   <span>0</span> 개</p>
                         <hr>
-                        <p id="hike-distance">예상 등산 거리:   <span></span> Km</p>
+                        <p id="hike-distance">예상 등산 거리:   <span>0</span> Km</p>
                         <hr>
-                        <p id="hike-time">예상 등산 시간:   <span></span> 분</p>
+                        <p id="hike-time">예상 등산 시간:   <span>0</span> 분</p>
                         <hr>
                     </div>
                 </ul>

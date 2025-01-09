@@ -53,7 +53,9 @@ public class CourseController {
      */
     @GetMapping("view")
     public String view(Model model, String mtId) {
+
         // For Test
+/*
          com.test.hike.dto.custom.MountainDTO result = dao.getAllRoadsWithCoordsByMtId(Integer.parseInt(mtId));
 
          try {
@@ -62,10 +64,13 @@ public class CourseController {
          } catch (Exception e) {
              e.printStackTrace();
          }
+*/
+
         List<HikingRoadSpotDTO> spotList = dao.getHikingRoadSpots(); // DTO를 List에 담아서 여러개 가져오기 위함
 
         // Jackson 라이브러리를 사용해서 spotList를 JSON형 데이터로 변환
         ObjectMapper objectMapper = new ObjectMapper();
+
         try {
             String spotListJson = objectMapper.writeValueAsString(spotList);
             model.addAttribute("spotListJson", spotListJson);
