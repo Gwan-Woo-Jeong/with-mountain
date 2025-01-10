@@ -8,11 +8,36 @@ import {initMap} from './common.js';
 
 const MIN_ZOOM_LEVEL = 7;
 const MAX_ZOOM_LEVEL = 1;
-const COLORS = {
-    OUT: '#ADB5BD',
-    OVER: '#343A40',
-    FORESTGREEN: 'forestgreen'
+
+const LEVELS = {
+    1: 'EASY',
+    2: 'MEDIUM',
+    3: 'HARD'
 };
+
+const COLORS = {
+    EASY: {
+        LIGHT: '#34C75950',
+        MIDDLE: '#34C759B3',
+        DARK: '#34C759'
+    },
+    MEDIUM: {
+        LIGHT: '#FFC10750',
+        MIDDLE: '#FFC107B3',
+        DARK: '#FFC107'
+    },
+    HARD: {
+        LIGHT: '#FF373750',
+        MIDDLE: '#FF3737B3',
+        DARK: '#FF3737'
+    }
+};
+
+const STROKE_WEIGHTS = {
+    DEFAULT: 4,
+    THICK: 5
+}
+
 const SPOT_TYPES = {
     '시종점': {imgSrc: '/hike/resources/static/images/spot-startend.svg', imgSize: [16, 16]},
     '분기점': {imgSrc: '/hike/resources/static/images/point.svg', imgSize: [5, 5]}
@@ -74,37 +99,42 @@ function drawSpotMarkers() {
 function drawRoads() {
     for (let i = 0; i < roadList.length; i++) {
         const road = roadList[i];
+        const level = getLevel(road);
         const path = road.coordList.map(coord => new kakao.maps.LatLng(coord.roadY, coord.roadX));
-        const polyline = new kakao.maps.Polyline({
+        const line = new kakao.maps.Polyline({
             map,
             path,
-            strokeWeight: 5,
-            strokeColor: COLORS.OUT,
+            strokeWeight: STROKE_WEIGHTS.DEFAULT,
+            strokeColor: getColor(level, "LIGHT"),
             strokeOpacity: 1,
             strokeStyle: 'solid',
-            lineNum: i,
         });
 
-        polyline.isClicked = false;
-        polyline.setMap(map);
+        line.isClicked = false;
+        line.setMap(map);
 
-        polyline.addListener('mouseover', () => {
-            if (!polyline.isClicked) setStrokeColor(COLORS.OVER);
+        line.addListener('mouseover', () => {
+            if (!line.isClicked) setStrokeColor(getColor(level, "MIDDLE"));
         });
 
-        polyline.addListener('mouseout', () => {
-            if (!polyline.isClicked) setStrokeColor(COLORS.OUT);
+        line.addListener('mouseout', () => {
+            if (!line.isClicked) setStrokeColor(getColor(level, "LIGHT"));
         });
 
-        polyline.addListener('click', () => {
+        line.addListener('click', () => {
             console.log(road);
-            polyline.isClicked = !polyline.isClicked;
-            setStrokeColor(polyline.isClicked ? COLORS.FORESTGREEN : COLORS.OVER);
-            updateSummary(polyline.isClicked, road);
+            line.isClicked = !line.isClicked;
+            setStrokeColor(line.isClicked ? getColor(level, "DARK") : getColor(level, 70));
+            setStrokeWeight(line.isClicked ? STROKE_WEIGHTS.THICK : STROKE_WEIGHTS.DEFAULT);
+            updateSummary(line.isClicked, road);
         });
 
         function setStrokeColor(color) {
-            polyline.setOptions({'strokeColor': color})
+            line.setOptions({'strokeColor': color})
+        }
+
+        function setStrokeWeight(value) {
+            line.setOptions({'strokeWeight': value})
         }
 
         function updateSummary(isClicked, {roadKm, roadTimeUp, roadTimeDown}) {
@@ -126,6 +156,22 @@ function truncDecimal(num) {
     return parseFloat(num.toFixed(2));
 }
 
+function getLevel({roadTimeUp, roadTimeDown, roadKm}) {
+    const ratio = roadTimeUp / (roadTimeDown || 1);
+    const measure = Math.pow(ratio, 3) * (roadKm / 2.5);
+
+    if (measure < 1) {
+        return 1;
+    } else if (measure < 2) {
+        return 2;
+    } else {
+        return 3;
+    }
+}
+
+function getColor(level, opacity) {
+    return COLORS[LEVELS[level]][opacity];
+}
 
 /*
     function roadData() {
