@@ -139,10 +139,10 @@ function drawRoads() {
         });
 
         line.addListener('click', () => {
-            line.isClicked = !line.isClicked;
-            setStrokeColor(line.isClicked ? getColor(level, "DARK") : getColor(level, 70));
-            setStrokeWeight(line.isClicked ? STROKE_WEIGHTS.THICK : STROKE_WEIGHTS.DEFAULT);
+            setStrokeColor(line.isClicked ? getColor(level, "MIDDLE") : getColor(level, "DARK"));
+            setStrokeWeight(line.isClicked ? STROKE_WEIGHTS.DEFAULT : STROKE_WEIGHTS.THICK);
             updateSummary(line.isClicked, road);
+            line.isClicked = !line.isClicked;
         });
 
         function setStrokeColor(color) {
@@ -155,7 +155,7 @@ function drawRoads() {
 
         function updateSummary(isClicked, {roadKm, roadTimeUp, roadTimeDown}) {
             const time = (roadTimeUp + roadTimeDown) / 2;
-            const plusOrMinus = isClicked ? 1 : -1;
+            const plusOrMinus = isClicked ? -1 : 1;
 
             summary.count += plusOrMinus;
             summary.distance = truncDecimal(summary.distance + plusOrMinus * truncDecimal(roadKm));
