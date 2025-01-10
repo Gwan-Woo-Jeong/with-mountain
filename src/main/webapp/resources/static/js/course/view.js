@@ -5,6 +5,7 @@
  * @author Kim Young-jin, Jeong Gwan-woo
  */
 import {initMap} from './common.js';
+import Graph from './graph.js';
 
 const MIN_ZOOM_LEVEL = 7;
 const MAX_ZOOM_LEVEL = 1;
@@ -64,6 +65,8 @@ const map = initMap(
 
 console.log(data);
 
+const graph = new Graph();
+
 drawRoads();
 drawSpotMarkers();
 
@@ -100,7 +103,21 @@ function drawRoads() {
     for (let i = 0; i < roadList.length; i++) {
         const road = roadList[i];
         const level = getLevel(road);
-        const path = road.coordList.map(coord => new kakao.maps.LatLng(coord.roadY, coord.roadX));
+        const path = [];
+        let startNode;
+        let endNode;
+
+        road.coordList.forEach((({coordId, roadX, roadY}, idx, arr) => {
+            if (idx === 0) {
+                startNode = graph.addNode(coordId, roadX, roadY)
+            }
+            if (idx === arr.length - 1) {
+                endNode = graph.addNode(coordId, roadX, roadY);
+                graph.addEdge(startNode, endNode, road.roadKm, road.roadId, level);
+            }
+            path.push(new kakao.maps.LatLng(roadY, roadX));
+        }));
+
         const line = new kakao.maps.Polyline({
             map,
             path,
@@ -122,7 +139,6 @@ function drawRoads() {
         });
 
         line.addListener('click', () => {
-            console.log(road);
             line.isClicked = !line.isClicked;
             setStrokeColor(line.isClicked ? getColor(level, "DARK") : getColor(level, 70));
             setStrokeWeight(line.isClicked ? STROKE_WEIGHTS.THICK : STROKE_WEIGHTS.DEFAULT);
