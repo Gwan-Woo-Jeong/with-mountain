@@ -66,6 +66,8 @@ const map = initMap(
 console.log(data);
 
 const graph = new Graph();
+const roadMap = new Map();
+const selectMap = new Map();
 
 drawRoads();
 drawSpotMarkers();
@@ -128,44 +130,122 @@ function drawRoads() {
         });
 
         line.isClicked = false;
+        line.level = level;
+        line.roadTimeUp = road.roadTimeUp;
+        line.roadTimeDown = road.roadTimeDown;
+        line.roadKm = road.roadKm;
+        line.roadId = road.roadId;
+
+        roadMap.set(road.roadId, line);
         line.setMap(map);
 
         line.addListener('mouseover', () => {
-            if (!line.isClicked) setStrokeColor(getColor(level, "MIDDLE"));
+            if (line.isClicked) {
+                hideSelectRoads(road, selectMap);
+                setStrokeColor(line, getColor(level, "LIGHT"));
+            } else {
+                setStrokeColor(line, getColor(level, "MIDDLE"));
+            }
         });
 
         line.addListener('mouseout', () => {
-            if (!line.isClicked) setStrokeColor(getColor(level, "LIGHT"));
+            if (line.isClicked) {
+                showSelectRoads();
+            } else {
+                setStrokeColor(line, getColor(level, "LIGHT"));
+            }
         });
 
         line.addListener('click', () => {
-            setStrokeColor(line.isClicked ? getColor(level, "MIDDLE") : getColor(level, "DARK"));
-            setStrokeWeight(line.isClicked ? STROKE_WEIGHTS.DEFAULT : STROKE_WEIGHTS.THICK);
-            updateSummary(line.isClicked, road);
+            if (line.isClicked) {
+                deleteSelectRoads(road, selectMap);
+                setStrokeColor(line, getColor(level, "MIDDLE"));
+            } else {
+                addSelectRoad(road);
+                showSelectRoad(line.roadId);
+            }
+
             line.isClicked = !line.isClicked;
+            showSummary();
         });
-
-        function setStrokeColor(color) {
-            line.setOptions({'strokeColor': color})
-        }
-
-        function setStrokeWeight(value) {
-            line.setOptions({'strokeWeight': value})
-        }
-
-        function updateSummary(isClicked, {roadKm, roadTimeUp, roadTimeDown}) {
-            const time = (roadTimeUp + roadTimeDown) / 2;
-            const plusOrMinus = isClicked ? -1 : 1;
-
-            summary.count += plusOrMinus;
-            summary.distance = truncDecimal(summary.distance + plusOrMinus * truncDecimal(roadKm));
-            summary.time += plusOrMinus * time;
-
-            $('#hike-lines span').text(summary.count);
-            $('#hike-distance span').text(summary.distance);
-            $('#hike-time span').text(summary.time);
-        }
     }
+}
+
+function addSelectRoad(road) {
+    selectMap.set(road.roadId, road);
+    increaseSummary(road);
+}
+
+function deleteSelectRoads(road, map) {
+    processAfterIndex(road, (key, road, map) => {
+        hideSelectRoad(key);
+        decreaseSummary(map.get(key));
+        map.delete(key);
+    }, map);
+}
+
+function hideSelectRoads(road, map) {
+    processAfterIndex(road, (key) => {
+        hideSelectRoad(key);
+    }, map);
+}
+
+function hideSelectRoad(key) {
+    const road = roadMap.get(key);
+    setStrokeColor(road, getColor(road.level, "LIGHT"));
+    setStrokeWeight(road, STROKE_WEIGHTS.DEFAULT);
+}
+
+
+function showSelectRoads() {
+    selectMap.forEach((value, key) => {
+        showSelectRoad(key);
+    });
+}
+
+function showSelectRoad(key) {
+    const road = roadMap.get(key);
+    if (road === undefined) return;
+    setStrokeColor(road, getColor(road.level, "DARK"));
+    setStrokeWeight(road, STROKE_WEIGHTS.THICK);
+}
+
+function processAfterIndex(road, callback, map) {
+    const keys = Array.from(map.keys());
+    const index = keys.indexOf(road.roadId);
+    if (index === -1) return;
+    keys.slice(index).forEach(key => {
+        callback(key, road, map);
+    });
+}
+
+function increaseSummary({ roadKm, roadTimeUp, roadTimeDown }) {
+    updateSummary({ roadKm, roadTimeUp, roadTimeDown }, 1);
+}
+
+function decreaseSummary({ roadKm, roadTimeUp, roadTimeDown }) {
+    updateSummary({ roadKm, roadTimeUp, roadTimeDown }, -1);
+}
+
+function updateSummary({ roadKm, roadTimeUp, roadTimeDown }, plusOrMinus) {
+    const time = (roadTimeUp + roadTimeDown) / 2;
+    summary.count += plusOrMinus;
+    summary.distance = truncDecimal(summary.distance + plusOrMinus * truncDecimal(roadKm));
+    summary.time += plusOrMinus * time;
+}
+
+function showSummary() {
+    $('#hike-lines span').text(summary.count);
+    $('#hike-distance span').text(summary.distance);
+    $('#hike-time span').text(summary.time);
+}
+
+function setStrokeColor(line, color) {
+    line.setOptions({'strokeColor': color})
+}
+
+function setStrokeWeight(line, value) {
+    line.setOptions({'strokeWeight': value})
 }
 
 function truncDecimal(num) {
