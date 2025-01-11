@@ -65,7 +65,6 @@ const kakaoMap = initMap(
 
 console.log(data);
 
-const map = new Map();
 const graph = new Graph();
 const selects = new MapStack();
 
@@ -129,18 +128,14 @@ function drawRoads() {
             strokeStyle: 'solid',
         });
 
-        line.isClicked = false;
-        line.level = level;
-        line.roadTimeUp = road.roadTimeUp;
-        line.roadTimeDown = road.roadTimeDown;
-        line.roadKm = road.roadKm;
-        line.roadId = road.roadId;
+        road.line = line;
+        road.isClicked = false;
+        road.level = level;
 
-        map.set(road.roadId, line);
         line.setMap(kakaoMap);
 
         line.addListener('mouseover', () => {
-            if (line.isClicked) {
+            if (road.isClicked) {
                 hideSelectRoads(road, selects);
                 setStrokeColor(line, getColor(level, "LIGHT"));
             } else {
@@ -149,7 +144,7 @@ function drawRoads() {
         });
 
         line.addListener('mouseout', () => {
-            if (line.isClicked) {
+            if (road.isClicked) {
                 showSelectRoads();
             } else {
                 setStrokeColor(line, getColor(level, "LIGHT"));
@@ -157,37 +152,37 @@ function drawRoads() {
         });
 
         line.addListener('click', () => {
-            if (line.isClicked) {
+            if (road.isClicked) {
                 deleteSelectRoads(road, selects);
                 setStrokeColor(line, getColor(level, "MIDDLE"));
             } else {
-                const fromNode = handeUnclick(line);
+                const fromNode = handeUnclick(road);
                 if (!fromNode) return;
                 addSelectRoad(road, fromNode);
-                showSelectRoad(line.roadId);
+                showSelectRoad(road.roadId);
             }
 
-            line.isClicked = !line.isClicked;
+            road.isClicked = !road.isClicked;
             showSummary();
         });
     }
 }
 
-function handeUnclick(line) {
+function handeUnclick(road) {
     const size = selects.size();
     let fromNode;
     if (size <= 0) {
-        const leafNode = graph.findLeafNodeIncluded(line.roadId)
+        const leafNode = graph.findLeafNodeIncluded(road.roadId)
         if (!leafNode) {
             alert("시종점과 연결된 등산로부터 선택해주세요!");
             return;
         }
 
-        fromNode = graph.getOppositeNode(line.roadId, leafNode);
+        fromNode = graph.getOppositeNode(road.roadId, leafNode);
     }
 
     if (size >= 1) {
-        const oppositeNode = graph.getOppositeNode(line.roadId, selects.peek().fromNode);
+        const oppositeNode = graph.getOppositeNode(road.roadId, selects.peek().fromNode);
         if (!oppositeNode) {
             alert("이전 등산로과 연결된 등산로를 선택해주세요!");
             return;
@@ -220,9 +215,9 @@ function hideSelectRoads(road, selects) {
 }
 
 function hideSelectRoad(key) {
-    const road = map.get(key);
-    setStrokeColor(road, getColor(road.level, "LIGHT"));
-    setStrokeWeight(road, STROKE_WEIGHTS.DEFAULT);
+    const road = selects.findValueByKey(key);
+    setStrokeColor(road.line, getColor(road.level, "LIGHT"));
+    setStrokeWeight(road.line, STROKE_WEIGHTS.DEFAULT);
 }
 
 function showSelectRoads() {
@@ -230,10 +225,10 @@ function showSelectRoads() {
 }
 
 function showSelectRoad(key) {
-    const road = map.get(key);
+    const road = selects.findValueByKey(key);
     if (road === undefined) return;
-    setStrokeColor(road, getColor(road.level, "DARK"));
-    setStrokeWeight(road, STROKE_WEIGHTS.THICK);
+    setStrokeColor(road.line, getColor(road.level, "DARK"));
+    setStrokeWeight(road.line, STROKE_WEIGHTS.THICK);
 }
 
 function processAfterIndex(road, callback, selects) {
@@ -293,36 +288,6 @@ function getLevel({roadTimeUp, roadTimeDown, roadKm}) {
 function getColor(level, opacity) {
     return COLORS[LEVELS[level]][opacity];
 }
-
-/*
-    function roadData() {
-        const token = $("meta[name='_csrf']").attr("content")
-        const header = $("meta[name='_csrf_header']").attr("content");
-
-        $.ajax({
-            url: 'view',
-            type: 'POST',
-            data: {
-                lines: lines,
-                hikeTime: hikeTime,
-                hikeDistance: hikeDistance
-            },
-            // ajax용 CSRF 토큰
-            //beforeSend : function(xhr) {
-            //    xhr.setRequestHeader(header, token);
-            //},
-            success: function (response) {
-                console.log('roadData 전송 성공');
-                $('#hike-lines span').text(lines);
-                $('#hike-distance span').text(hikeDistance);
-                $('#hike-time span').text(hikeTime);
-            },
-            error: function (error) {
-                console.error('roadData 전송 실패', error);
-            }
-        });
-    }
-*/
 
 $('.switch-mode').click(() => {
     alert('추후 업데이트 예정입니다.');
