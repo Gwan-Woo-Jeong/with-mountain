@@ -45,6 +45,12 @@ const SPOT_TYPES = {
     '분기점': {imgSrc: '/hike/resources/static/images/point.svg', imgSize: [5, 5]}
 };
 
+const SELECT_MARKERS = {
+    'EASY': {imgSrc: '/hike/resources/static/images/point-green.svg', imgSize: [20, 20]},
+    'MEDIUM': {imgSrc: '/hike/resources/static/images/point-yellow.svg', imgSize: [20, 20]},
+    'HARD': {imgSrc: '/hike/resources/static/images/point-red.svg', imgSize: [20, 20]},
+}
+
 const data = await loadJSON(); // For Test
 const queryString = window.location.search;
 const urlParams = new URLSearchParams(queryString);
@@ -84,18 +90,29 @@ async function loadJSON() {
     }
 }
 
+function drawMarker(markerConfig, position) {
+    const markerImg = new kakao.maps.MarkerImage(markerConfig.imgSrc, new kakao.maps.Size((markerConfig.imgSize)[0], (markerConfig.imgSize)[1]));
+    return new kakao.maps.Marker({
+        map: kakaoMap,
+        position,
+        image: markerImg
+    });
+}
+
+function drawCustomOverlay(position) {
+    const content = `<div class ="course-number">${selects.size()}</div>`;
+    const xAnchor = 0.426;
+    const yAnchor = 1.35;
+    return new kakao.maps.CustomOverlay({position, content, xAnchor, yAnchor});
+}
+
 function drawSpotMarkers() {
     spotList.forEach(spot => {
         const spotType = spot.spotType;
         const point = new kakao.maps.LatLng(spot.spotY, spot.spotX);
         const markerConfig = SPOT_TYPES[spotType];
         if (markerConfig) {
-            const markerImg = new kakao.maps.MarkerImage(markerConfig.imgSrc, new kakao.maps.Size((markerConfig.imgSize)[0], (markerConfig.imgSize)[1]));
-            new kakao.maps.Marker({
-                map: kakaoMap,
-                position: point,
-                image: markerImg
-            });
+            drawMarker(markerConfig, point);
         }
     });
 }
@@ -156,9 +173,9 @@ function drawRoads() {
                 deleteSelectRoads(road, selects);
                 setStrokeColor(line, getColor(level, "MIDDLE"));
             } else {
-                const fromNode = handeUnclick(road);
-                if (!fromNode) return;
-                addSelectRoad(road, fromNode);
+                const fromNodeId = handeUnclick(road);
+                if (!fromNodeId) return;
+                addSelectRoad(road, fromNodeId);
                 showSelectRoad(road.roadId);
             }
 
@@ -170,7 +187,7 @@ function drawRoads() {
 
 function handeUnclick(road) {
     const size = selects.size();
-    let fromNode;
+    let fromNodeId;
     if (size <= 0) {
         const leafNode = graph.findLeafNodeIncluded(road.roadId)
         if (!leafNode) {
@@ -178,23 +195,24 @@ function handeUnclick(road) {
             return;
         }
 
-        fromNode = graph.getOppositeNode(road.roadId, leafNode);
+        fromNodeId = graph.getOppositeNode(road.roadId, leafNode);
     }
 
     if (size >= 1) {
-        const oppositeNode = graph.getOppositeNode(road.roadId, selects.peek().fromNode);
-        if (!oppositeNode) {
+        const oppositeNodeId = graph.getOppositeNode(road.roadId, selects.peek().fromNode.id);
+        if (!oppositeNodeId) {
             alert("이전 등산로과 연결된 등산로를 선택해주세요!");
             return;
         }
-        fromNode = oppositeNode;
+        fromNodeId = oppositeNodeId;
     }
 
-    return fromNode;
+    return fromNodeId;
 }
 
-function addSelectRoad(road, fromNode) {
-    road.fromNode = fromNode;
+function addSelectRoad(road, fromNodeId) {
+    const [x, y] = graph.findCoordsById(fromNodeId);
+    road.fromNode = {id: fromNodeId, x, y};
     const {coordList, ...rest} = road;
     selects.push(road.roadId, rest);
     increaseSummary(road);
@@ -216,6 +234,8 @@ function hideSelectRoads(road, selects) {
 
 function hideSelectRoad(key) {
     const road = selects.findValueByKey(key);
+    road.marker.setMap(null);
+    road.customOverlay.setMap(null);
     setStrokeColor(road.line, getColor(road.level, "LIGHT"));
     setStrokeWeight(road.line, STROKE_WEIGHTS.DEFAULT);
 }
@@ -227,6 +247,15 @@ function showSelectRoads() {
 function showSelectRoad(key) {
     const road = selects.findValueByKey(key);
     if (road === undefined) return;
+    if (!road.marker) {
+        const markerConfig = SELECT_MARKERS[LEVELS[road.level]];
+        const position = new kakao.maps.LatLng(road.fromNode.y, road.fromNode.x);
+        road.marker = drawMarker(markerConfig, position);
+        road.customOverlay = drawCustomOverlay(position);
+    }
+    road.marker.setMap(kakaoMap);
+    road.customOverlay.setMap(kakaoMap);
+
     setStrokeColor(road.line, getColor(road.level, "DARK"));
     setStrokeWeight(road.line, STROKE_WEIGHTS.THICK);
 }

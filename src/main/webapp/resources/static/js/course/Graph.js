@@ -1,15 +1,25 @@
 class Graph {
     constructor() {
         this.nodes = new Map();
-        this.coords = new Map();
+        this.coordsToId = new Map();
+        this.idToCoords = new Map();
     }
 
     findIdByCoords(x, y) {
-        return this.coords.get(`${x},${y}`) || null;
+        return this.coordsToId.get(`${x},${y}`) || null;
+    }
+
+    findCoordsById(id) {
+        const coords = this.idToCoords.get(id);
+        return coords ? coords.split(',') : null;
     }
 
     addCoordsWithId(id, x, y) {
-        this.coords.set(`${x},${y}`, id);
+        this.coordsToId.set(`${x},${y}`, id);
+    }
+
+    addIdWithCoords(id, x, y) {
+        this.idToCoords.set(id, `${x},${y}`);
     }
 
     addNode(id, x, y) {
@@ -20,6 +30,7 @@ class Graph {
         }
 
         this.addCoordsWithId(id, x, y);
+        this.addIdWithCoords(id, x, y);
         this.nodes.set(id, []);
         return id;
     }
