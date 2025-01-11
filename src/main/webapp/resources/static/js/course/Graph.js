@@ -29,32 +29,6 @@ class Graph {
         this.nodes.get(end).push({id: edgeId, node: start, distance, level});
     }
 
-    getNodesConnectedByEdge(edgeId) {
-        for (const [node, edges] of this.nodes) {
-            for (const edge of edges) {
-                if (edge.id === edgeId) {
-                    return [node, edge.node];
-                }
-            }
-        }
-        return null;
-    }
-
-    areEdgesConnected(edgeId1, edgeId2) {
-        const nodes1 = this.getNodesConnectedByEdge(edgeId1);
-        const nodes2 = this.getNodesConnectedByEdge(edgeId2);
-
-        if (!nodes1 || !nodes2) return false;
-
-        for (const node1 of nodes1) {
-            for (const node2 of nodes2) {
-                if (node1 === node2) return true;
-            }
-        }
-
-        return false;
-    }
-
     findLeafNodes() {
         const leafNodes = [];
         for (const [node, edges] of this.nodes) {
@@ -66,19 +40,20 @@ class Graph {
         return leafNodes;
     }
 
-    isEdgeConnectedToLeafNode(edgeId) {
+    getOppositeNode(edgeId, node) {
+        const edges = this.nodes.get(node);
+        return edges?.find(edge => edge.id === edgeId)?.node || null;
+    }
+
+    findLeafNodeIncluded(edgeId) {
         const leafNodes = this.findLeafNodes();
 
-        for (const leafNode of leafNodes) {
+        return leafNodes.find(leafNode => {
             const edges = this.nodes.get(leafNode);
-            for (const edge of edges) {
-                if (edge.id === edgeId) {
-                    return true;
-                }
-            }
-        }
-        return false;
+            return edges?.some(edge => edge.id === edgeId);
+        }) || null;
     }
 }
+
 
 export default Graph;

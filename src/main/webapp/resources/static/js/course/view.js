@@ -5,7 +5,8 @@
  * @author Kim Young-jin, Jeong Gwan-woo
  */
 import {initMap} from './common.js';
-import Graph from './graph.js';
+import Graph from './Graph.js';
+import MapStack from './MapStack.js';
 
 const MIN_ZOOM_LEVEL = 7;
 const MAX_ZOOM_LEVEL = 1;
@@ -51,12 +52,11 @@ const mtY = urlParams.get('mtY');
 const mtX = urlParams.get('mtX');
 const roadList = data["roadList"];
 const summary = {
-    count: 0,
     distance: 0,
     time: 0,
 }
 
-const map = initMap(
+const kakaoMap = initMap(
     '#view-map',
     parseFloat(mtY),
     parseFloat(mtX),
@@ -65,9 +65,9 @@ const map = initMap(
 
 console.log(data);
 
+const map = new Map();
 const graph = new Graph();
-const roadMap = new Map();
-const selectMap = new Map();
+const selects = new MapStack();
 
 drawRoads();
 drawSpotMarkers();
@@ -93,7 +93,7 @@ function drawSpotMarkers() {
         if (markerConfig) {
             const markerImg = new kakao.maps.MarkerImage(markerConfig.imgSrc, new kakao.maps.Size((markerConfig.imgSize)[0], (markerConfig.imgSize)[1]));
             new kakao.maps.Marker({
-                map: map,
+                map: kakaoMap,
                 position: point,
                 image: markerImg
             });
@@ -121,7 +121,7 @@ function drawRoads() {
         }));
 
         const line = new kakao.maps.Polyline({
-            map,
+            map: kakaoMap,
             path,
             strokeWeight: STROKE_WEIGHTS.DEFAULT,
             strokeColor: getColor(level, "LIGHT"),
@@ -136,12 +136,12 @@ function drawRoads() {
         line.roadKm = road.roadKm;
         line.roadId = road.roadId;
 
-        roadMap.set(road.roadId, line);
-        line.setMap(map);
+        map.set(road.roadId, line);
+        line.setMap(kakaoMap);
 
         line.addListener('mouseover', () => {
             if (line.isClicked) {
-                hideSelectRoads(road, selectMap);
+                hideSelectRoads(road, selects);
                 setStrokeColor(line, getColor(level, "LIGHT"));
             } else {
                 setStrokeColor(line, getColor(level, "MIDDLE"));
@@ -158,10 +158,12 @@ function drawRoads() {
 
         line.addListener('click', () => {
             if (line.isClicked) {
-                deleteSelectRoads(road, selectMap);
+                deleteSelectRoads(road, selects);
                 setStrokeColor(line, getColor(level, "MIDDLE"));
             } else {
-                addSelectRoad(road);
+                const fromNode = handeUnclick(line);
+                if (!fromNode) return;
+                addSelectRoad(road, fromNode);
                 showSelectRoad(line.roadId);
             }
 
@@ -171,71 +173,94 @@ function drawRoads() {
     }
 }
 
-function addSelectRoad(road) {
-    selectMap.set(road.roadId, road);
+function handeUnclick(line) {
+    const size = selects.size();
+    let fromNode;
+    if (size <= 0) {
+        const leafNode = graph.findLeafNodeIncluded(line.roadId)
+        if (!leafNode) {
+            alert("시종점과 연결된 등산로부터 선택해주세요!");
+            return;
+        }
+
+        fromNode = graph.getOppositeNode(line.roadId, leafNode);
+    }
+
+    if (size >= 1) {
+        const oppositeNode = graph.getOppositeNode(line.roadId, selects.peek().fromNode);
+        if (!oppositeNode) {
+            alert("이전 등산로과 연결된 등산로를 선택해주세요!");
+            return;
+        }
+        fromNode = oppositeNode;
+    }
+
+    return fromNode;
+}
+
+function addSelectRoad(road, fromNode) {
+    road.fromNode = fromNode;
+    const {coordList, ...rest} = road;
+    selects.push(road.roadId, rest);
     increaseSummary(road);
 }
 
-function deleteSelectRoads(road, map) {
-    processAfterIndex(road, (key, road, map) => {
+function deleteSelectRoads(road, selects) {
+    processAfterIndex(road, (key, road, selects) => {
         hideSelectRoad(key);
-        decreaseSummary(map.get(key));
-        map.delete(key);
-    }, map);
+        decreaseSummary(selects.findValueByKey(key));
+        selects.deleteByKey(key);
+    }, selects);
 }
 
-function hideSelectRoads(road, map) {
+function hideSelectRoads(road, selects) {
     processAfterIndex(road, (key) => {
         hideSelectRoad(key);
-    }, map);
+    }, selects);
 }
 
 function hideSelectRoad(key) {
-    const road = roadMap.get(key);
+    const road = map.get(key);
     setStrokeColor(road, getColor(road.level, "LIGHT"));
     setStrokeWeight(road, STROKE_WEIGHTS.DEFAULT);
 }
 
-
 function showSelectRoads() {
-    selectMap.forEach((value, key) => {
-        showSelectRoad(key);
-    });
+    selects.forEach((value, key) => showSelectRoad(key));
 }
 
 function showSelectRoad(key) {
-    const road = roadMap.get(key);
+    const road = map.get(key);
     if (road === undefined) return;
     setStrokeColor(road, getColor(road.level, "DARK"));
     setStrokeWeight(road, STROKE_WEIGHTS.THICK);
 }
 
-function processAfterIndex(road, callback, map) {
-    const keys = Array.from(map.keys());
+function processAfterIndex(road, callback, selects) {
+    const keys = Array.from(selects.keys());
     const index = keys.indexOf(road.roadId);
     if (index === -1) return;
     keys.slice(index).forEach(key => {
-        callback(key, road, map);
+        callback(key, road, selects);
     });
 }
 
-function increaseSummary({ roadKm, roadTimeUp, roadTimeDown }) {
-    updateSummary({ roadKm, roadTimeUp, roadTimeDown }, 1);
+function increaseSummary({roadKm, roadTimeUp, roadTimeDown}) {
+    updateSummary({roadKm, roadTimeUp, roadTimeDown}, 1);
 }
 
-function decreaseSummary({ roadKm, roadTimeUp, roadTimeDown }) {
-    updateSummary({ roadKm, roadTimeUp, roadTimeDown }, -1);
+function decreaseSummary({roadKm, roadTimeUp, roadTimeDown}) {
+    updateSummary({roadKm, roadTimeUp, roadTimeDown}, -1);
 }
 
-function updateSummary({ roadKm, roadTimeUp, roadTimeDown }, plusOrMinus) {
+function updateSummary({roadKm, roadTimeUp, roadTimeDown}, plusOrMinus) {
     const time = (roadTimeUp + roadTimeDown) / 2;
-    summary.count += plusOrMinus;
     summary.distance = truncDecimal(summary.distance + plusOrMinus * truncDecimal(roadKm));
     summary.time += plusOrMinus * time;
 }
 
 function showSummary() {
-    $('#hike-lines span').text(summary.count);
+    $('#hike-lines span').text(selects.size());
     $('#hike-distance span').text(summary.distance);
     $('#hike-time span').text(summary.time);
 }
