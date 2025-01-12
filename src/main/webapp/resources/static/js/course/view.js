@@ -173,7 +173,7 @@ function drawRoads() {
                 deleteSelectRoads(road, selects);
                 setStrokeColor(line, getColor(level, "MIDDLE"));
             } else {
-                const fromNodeId = handeUnclick(road);
+                const fromNodeId = handleClick(road);
                 if (!fromNodeId) return;
                 addSelectRoad(road, fromNodeId);
                 showSelectRoad(road.roadId);
@@ -185,20 +185,16 @@ function drawRoads() {
     }
 }
 
-function handeUnclick(road) {
-    const size = selects.size();
+function handleClick(road) {
     let fromNodeId;
-    if (size <= 0) {
-        const leafNode = graph.findLeafNodeIncluded(road.roadId)
+    if (selects.isEmpty()) {
+        const leafNode = graph.findLeafNodeIncluded(road.roadId);
         if (!leafNode) {
             alert("시종점과 연결된 등산로부터 선택해주세요!");
             return;
         }
-
         fromNodeId = graph.getOppositeNode(road.roadId, leafNode);
-    }
-
-    if (size >= 1) {
+    } else {
         const oppositeNodeId = graph.getOppositeNode(road.roadId, selects.peek().fromNode.id);
         if (!oppositeNodeId) {
             alert("이전 등산로과 연결된 등산로를 선택해주세요!");
@@ -206,7 +202,6 @@ function handeUnclick(road) {
         }
         fromNodeId = oppositeNodeId;
     }
-
     return fromNodeId;
 }
 
