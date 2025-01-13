@@ -17,9 +17,10 @@ class MapStack {
         }
         this.currentIndex--;
         const key = this.stack.get(this.currentIndex);
+        const value = this.map.get(key);
         this.stack.delete(this.currentIndex);
         this.map.delete(key);
-        return this.map.get(key);
+        return value;
     }
 
     peek() {
@@ -27,6 +28,13 @@ class MapStack {
             throw new Error("[MapStack] peek: 스택이 비었습니다.");
         }
         return this.map.get(this.stack.get(this.currentIndex - 1));
+    }
+
+    first() {
+        if (this.isEmpty()) {
+            throw new Error("[MapStack] first: 스택이 비었습니다.");
+        }
+        return this.map.get(this.stack.get(0));
     }
 
     findValueByKey(key) {
@@ -47,6 +55,12 @@ class MapStack {
             return true;
         }
         return false;
+    }
+
+    reset() {
+        this.map = new Map();
+        this.stack = new Map();
+        this.currentIndex = 0;
     }
 
     forEach(callback) {

@@ -62,6 +62,19 @@ const summary = {
     time: 0,
 }
 
+const AUTO_MODE_TYPE = {
+    SHORTEST: 'SHORTEST',
+    FASTEST: 'FASTEST',
+    HIGHEST_LEVEL: 'HIGHEST_LEVEL',
+    LOWEST_LEVEL: 'LOWEST_LEVEL'
+}
+
+const autoMode = {
+    isActive: false,
+    isFinished: false,
+    type: AUTO_MODE_TYPE
+}
+
 const kakaoMap = initMap(
     '#view-map',
     parseFloat(mtY),
@@ -73,6 +86,7 @@ console.log(data);
 
 const graph = new Graph();
 const selects = new MapStack();
+const roads = new Map();
 
 drawRoads();
 drawSpotMarkers();
@@ -121,6 +135,7 @@ function drawRoads() {
     for (let i = 0; i < roadList.length; i++) {
         const road = roadList[i];
         const level = getLevel(road);
+        const time = (road.roadTimeUp + road.roadTimeDown) / 2;
         const path = [];
         let startNode;
         let endNode;
@@ -131,7 +146,7 @@ function drawRoads() {
             }
             if (idx === arr.length - 1) {
                 endNode = graph.addNode(coordId, roadX, roadY);
-                graph.addEdge(startNode, endNode, road.roadKm, road.roadId, level);
+                graph.addEdge(startNode, endNode, road.roadKm, road.roadId, level, time);
             }
             path.push(new kakao.maps.LatLng(roadY, roadX));
         }));
@@ -146,12 +161,18 @@ function drawRoads() {
         });
 
         road.line = line;
-        road.isClicked = false;
         road.level = level;
+        road.time = time;
+        road.isClicked = false;
+        roads.set(road.roadId, road);
 
         line.setMap(kakaoMap);
 
         line.addListener('mouseover', () => {
+            if (autoMode.isActive && selects.size() > 1) {
+                return;
+            }
+
             if (road.isClicked) {
                 hideSelectRoads(road, selects);
                 setStrokeColor(line, getColor(level, "LIGHT"));
@@ -169,33 +190,109 @@ function drawRoads() {
         });
 
         line.addListener('click', () => {
-            if (road.isClicked) {
-                deleteSelectRoads(road, selects);
-                setStrokeColor(line, getColor(level, "MIDDLE"));
+            if (autoMode.isActive) {
+                handleAutoMode(road);
             } else {
-                const fromNodeId = handleClick(road);
-                if (!fromNodeId) return;
-                addSelectRoad(road, fromNodeId);
-                showSelectRoad(road.roadId);
+                handleManualMode(road);
             }
-
-            road.isClicked = !road.isClicked;
-            showSummary();
         });
     }
 }
 
-function handleClick(road) {
+function handleAutoMode(road) {
+    if (autoMode.isFinished) {
+        if (confirmReset()) {
+            resetAutoMode(selects);
+        }
+        return;
+    }
+
+    const leafNodeId = graph.findLeafNodeIncluded(road.roadId);
+    if (road.isClicked && selects.size() === 1) {
+        unselectRoad(road);
+        return;
+    }
+
+    if (!leafNodeId) {
+        alert("시종점과 연결된 등산로 2개를 선택해주세요!");
+        return;
+    }
+
+    road.isClicked = true;
+    const fromNodeId = graph.getOppositeNode(road.roadId, leafNodeId);
+    selectRoad(road, fromNodeId, leafNodeId);
+
+    if (selects.size() === 2) {
+        runAutoMode(selects);
+        showSummary();
+    }
+}
+
+function handleManualMode(road) {
+    if (road.isClicked) {
+        unselectRoad(road);
+    } else {
+        const fromNodeId = handleClick(road.roadId);
+        if (fromNodeId) {
+            selectRoad(road, fromNodeId);
+        }
+    }
+
+    road.isClicked = !road.isClicked;
+    showSummary();
+}
+
+function confirmReset() {
+    return confirm("추천 경로를 초기화 하시겠습니까?");
+}
+
+function resetAutoMode() {
+    autoMode.isFinished = false;
+    hideSelectRoads(selects.first());
+    selects.reset();
+    resetSummary();
+    showSummary();
+}
+
+function unselectRoad(road) {
+    deleteSelectRoads(road);
+    setStrokeColor(road.line, getColor(road.level, "MIDDLE"));
+}
+
+function selectRoad(road, fromNodeId, leafNodeId = null) {
+    addSelectRoad(road, fromNodeId, leafNodeId);
+    showSelectRoad(road.roadId);
+}
+
+function runAutoMode() {
+    hideSelectRoads(selects.first());
+    resetSummary();
+
+    const current = selects.pop();
+    const previous = selects.pop();
+    const roadIds = graph.findLowestLevelPath(previous.leafNodeId, current.leafNodeId);
+
+    roadIds.forEach(roadId => {
+        const fromNodeId = handleClick(roadId);
+        const road = roads.get(roadId);
+        selectRoad(road, fromNodeId);
+    });
+
+    showSummary();
+    autoMode.isFinished = true;
+}
+
+function handleClick(roadId) {
     let fromNodeId;
     if (selects.isEmpty()) {
-        const leafNode = graph.findLeafNodeIncluded(road.roadId);
+        const leafNode = graph.findLeafNodeIncluded(roadId);
         if (!leafNode) {
             alert("시종점과 연결된 등산로부터 선택해주세요!");
             return;
         }
-        fromNodeId = graph.getOppositeNode(road.roadId, leafNode);
+        fromNodeId = graph.getOppositeNode(roadId, leafNode);
     } else {
-        const oppositeNodeId = graph.getOppositeNode(road.roadId, selects.peek().fromNode.id);
+        const oppositeNodeId = graph.getOppositeNode(roadId, selects.peek().fromNode.id);
         if (!oppositeNodeId) {
             alert("이전 등산로과 연결된 등산로를 선택해주세요!");
             return;
@@ -205,26 +302,33 @@ function handleClick(road) {
     return fromNodeId;
 }
 
-function addSelectRoad(road, fromNodeId) {
-    const [x, y] = graph.findCoordsById(fromNodeId);
-    road.fromNode = {id: fromNodeId, x, y};
+function addSelectRoad(road, fromNodeId, leafNodeId) {
+    if (fromNodeId) {
+        const [x, y] = graph.findCoordsById(fromNodeId);
+        road.fromNode = {id: fromNodeId, x, y};
+    }
+
+    if (leafNodeId) {
+        road.leafNodeId = leafNodeId;
+    }
+
     const {coordList, ...rest} = road;
     selects.push(road.roadId, rest);
     increaseSummary(road);
 }
 
-function deleteSelectRoads(road, selects) {
-    processAfterIndex(road, (key, road, selects) => {
+function deleteSelectRoads(road) {
+    processAfterIndex(road, (key) => {
         hideSelectRoad(key);
         decreaseSummary(selects.findValueByKey(key));
         selects.deleteByKey(key);
-    }, selects);
+    });
 }
 
-function hideSelectRoads(road, selects) {
+function hideSelectRoads(road) {
     processAfterIndex(road, (key) => {
         hideSelectRoad(key);
-    }, selects);
+    });
 }
 
 function hideSelectRoad(key) {
@@ -255,7 +359,7 @@ function showSelectRoad(key) {
     setStrokeWeight(road.line, STROKE_WEIGHTS.THICK);
 }
 
-function processAfterIndex(road, callback, selects) {
+function processAfterIndex(road, callback) {
     const keys = Array.from(selects.keys());
     const index = keys.indexOf(road.roadId);
     if (index === -1) return;
@@ -264,16 +368,20 @@ function processAfterIndex(road, callback, selects) {
     });
 }
 
-function increaseSummary({roadKm, roadTimeUp, roadTimeDown}) {
-    updateSummary({roadKm, roadTimeUp, roadTimeDown}, 1);
+function increaseSummary({roadKm, time}) {
+    updateSummary({roadKm, time}, 1);
 }
 
-function decreaseSummary({roadKm, roadTimeUp, roadTimeDown}) {
-    updateSummary({roadKm, roadTimeUp, roadTimeDown}, -1);
+function decreaseSummary({roadKm, time}) {
+    updateSummary({roadKm, time}, -1);
 }
 
-function updateSummary({roadKm, roadTimeUp, roadTimeDown}, plusOrMinus) {
-    const time = (roadTimeUp + roadTimeDown) / 2;
+function resetSummary() {
+    summary.distance = 0;
+    summary.time = 0;
+}
+
+function updateSummary({roadKm, time}, plusOrMinus) {
     summary.distance = truncDecimal(summary.distance + plusOrMinus * truncDecimal(roadKm));
     summary.time += plusOrMinus * time;
 }
@@ -313,7 +421,7 @@ function getColor(level, opacity) {
     return COLORS[LEVELS[level]][opacity];
 }
 
-$('.switch-mode').click(() => {
+$('.switch-autoMode').click(() => {
     alert('추후 업데이트 예정입니다.');
 });
 
