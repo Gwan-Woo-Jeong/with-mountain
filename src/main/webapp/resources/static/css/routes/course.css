@@ -170,11 +170,15 @@
     justify-content: space-between;
 }
 
+.menu-item > *:nth-child(2) {
+    min-width: 160px;
+}
+
 .menu-title {
     font-weight: 500;
 }
 
-.menu-option {
+.mode {
     display: flex;
     gap: 20px
 }
@@ -229,8 +233,7 @@
     flex-direction: column;
     flex-grow: 1;
     justify-content: space-between;
-    gap: 16px;
-
+    gap: 24px;
 }
 
 .menu-window .save {
@@ -263,4 +266,47 @@
     font-size: 11px;
     font-weight: 500;
     color: var(--white);
+}
+
+.summary-item {
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.summary-item:not(:first-of-type) {
+    margin-top: 20px;
+}
+
+.summary-item > :not(.total) {
+    font-size: 13px;
+    color: var(--gray03);
+    display: none;
+}
+
+.summary-item .total .hour {
+    display: none;
+}
+
+.standards {
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.disabled {
+    color: var(--gray04);
+    cursor: default;
+    pointer-events: none;
+}
+
+.disabled .radio-wrap input:checked + .radio-btn:before {
+    background-color: var(--gray05);
+}
+
+
+.hide {
+    display: none;
 }
