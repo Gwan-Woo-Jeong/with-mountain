@@ -57,10 +57,24 @@ const urlParams = new URLSearchParams(queryString);
 const mtY = urlParams.get('mtY');
 const mtX = urlParams.get('mtX');
 const roadList = data["roadList"];
-const summary = {
-    distance: 0,
-    time: 0,
+
+const SUMMARY_KEYS = {
+    COUNT: 'count',
+    DISTANCE: 'distance',
+    TIME: 'time'
 }
+
+const SUMMARY_DEFAULT_VALUE = {
+    EASY: 0,
+    MEDIUM: 0,
+    HARD: 0
+}
+
+const summary = {
+    count: {...SUMMARY_DEFAULT_VALUE},
+    distance: {...SUMMARY_DEFAULT_VALUE},
+    time: {...SUMMARY_DEFAULT_VALUE},
+};
 
 const AUTO_MODE_TYPE = {
     SHORTEST: 'SHORTEST',
@@ -224,7 +238,7 @@ function handleAutoMode(road) {
 
     if (selects.size() === 2) {
         runAutoMode(selects);
-        showSummary();
+        showSummaries();
     }
 }
 
@@ -239,7 +253,7 @@ function handleManualMode(road) {
     }
 
     road.isClicked = !road.isClicked;
-    showSummary();
+    showSummaries();
 }
 
 function confirmReset() {
@@ -251,7 +265,7 @@ function resetAutoMode() {
     hideSelectRoads(selects.first());
     selects.reset();
     resetSummary();
-    showSummary();
+    showSummaries();
 }
 
 function unselectRoad(road) {
@@ -278,7 +292,7 @@ function runAutoMode() {
         selectRoad(road, fromNodeId);
     });
 
-    showSummary();
+    showSummaries();
     autoMode.isFinished = true;
 }
 
@@ -368,28 +382,96 @@ function processAfterIndex(road, callback) {
     });
 }
 
-function increaseSummary({roadKm, time}) {
-    updateSummary({roadKm, time}, 1);
+function increaseSummary({roadKm, time, level}) {
+    updateSummary({roadKm, time, level}, 1);
 }
 
-function decreaseSummary({roadKm, time}) {
-    updateSummary({roadKm, time}, -1);
+function decreaseSummary({roadKm, time, level}) {
+    updateSummary({roadKm, time, level}, -1);
 }
 
 function resetSummary() {
-    summary.distance = 0;
-    summary.time = 0;
+    summary.count = {...SUMMARY_DEFAULT_VALUE};
+    summary.time = {...SUMMARY_DEFAULT_VALUE};
+    summary.distance = {...SUMMARY_DEFAULT_VALUE};
 }
 
-function updateSummary({roadKm, time}, plusOrMinus) {
-    summary.distance = truncDecimal(summary.distance + plusOrMinus * truncDecimal(roadKm));
-    summary.time += plusOrMinus * time;
+function updateSummary({roadKm, time, level}, plusOrMinus) {
+    summary.count[LEVELS[level]] += plusOrMinus;
+    summary.distance[LEVELS[level]] = truncDecimal(summary.distance[LEVELS[level]] + plusOrMinus * roadKm);
+    summary.time[LEVELS[level]] += plusOrMinus * time;
 }
 
-function showSummary() {
-    $('#hike-lines span').text(selects.size());
-    $('#hike-distance span').text(summary.distance);
-    $('#hike-time span').text(summary.time);
+function showSummaries() {
+    showSummary(SUMMARY_KEYS.COUNT, summary.count);
+    showSummary(SUMMARY_KEYS.DISTANCE, summary.distance);
+    for (const key in summary.time) {
+        showTimeSummary(key, summary.time[key]);
+    }
+    showTotalTimeSummary();
+}
+
+function showSummary(type, data) {
+    let total = 0;
+
+    for (const key in data) {
+        const value = data[key];
+        const selector = `#${type} .${key.toLowerCase()}`;
+
+        updateDisplay(selector, value > 0);
+        updateText(selector, value);
+
+        total += value;
+    }
+
+    const totalValue = type === SUMMARY_KEYS.DISTANCE ? truncDecimal(total) : total;
+    updateText(`#${type} .total`, totalValue);
+}
+
+function showTimeSummary(key, value) {
+    const {hour, minute} = minuteToHourMinute(value);
+    const selector = `#time .${key.toLowerCase()}`;
+
+    updateDisplay(selector, value > 0);
+
+    updateDisplay(`${selector} .hour`, hour);
+    updateText(`${selector} .hour`, hour);
+
+    updateText(`${selector} .minute`, roundMinuteIfHour(hour, minute));
+}
+
+function showTotalTimeSummary() {
+    const {EASY, MEDIUM, HARD} = summary.time;
+    const totalMinutes = EASY + MEDIUM + HARD;
+    const {hour, minute} = minuteToHourMinute(totalMinutes);
+    const selector = `#time .total`;
+
+    updateDisplay(`${selector} .hour`, hour);
+    updateText(`${selector} .hour`, hour);
+
+    updateText(`${selector} .minute`, roundMinuteIfHour(hour, minute));
+}
+
+function minuteToHourMinute(min) {
+    const hour = Math.floor(min / 60);
+    const minute = min % 60;
+    return {hour, minute};
+}
+
+function roundMinuteIfHour(hour, minute) {
+    return hour && minute ? Math.round(minute) : minute;
+}
+
+function updateDisplay(selector, isVisible) {
+    if (isVisible) {
+        $(selector).show();
+    } else {
+        $(selector).hide();
+    }
+}
+
+function updateText(selector, value) {
+    $(`${selector} .value`).text(value);
 }
 
 function setStrokeColor(line, color) {
@@ -420,8 +502,3 @@ function getLevel({roadTimeUp, roadTimeDown, roadKm}) {
 function getColor(level, opacity) {
     return COLORS[LEVELS[level]][opacity];
 }
-
-$('.switch-autoMode').click(() => {
-    alert('추후 업데이트 예정입니다.');
-});
-
