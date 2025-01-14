@@ -73,11 +73,11 @@ class Graph {
         return this.findPath(start, end, 'time', Math.min);
     }
 
-    findHighestLevelPath(start, end) {
+    findHardestPath(start, end) {
         return this.findPath(start, end, 'level', Math.max);
     }
 
-    findLowestLevelPath(start, end) {
+    findEasiestPath(start, end) {
         return this.findPath(start, end, 'level', Math.min);
     }
 

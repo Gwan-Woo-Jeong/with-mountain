@@ -70,23 +70,23 @@ const SUMMARY_DEFAULT_VALUE = {
     HARD: 0
 }
 
+const AUTO_MODE_TYPE = {
+    SHORTEST: 'SHORTEST',
+    FASTEST: 'FASTEST',
+    HARDEST: 'HARDEST',
+    EASIEST: 'EASIEST'
+}
+
 const summary = {
     count: {...SUMMARY_DEFAULT_VALUE},
     distance: {...SUMMARY_DEFAULT_VALUE},
     time: {...SUMMARY_DEFAULT_VALUE},
 };
 
-const AUTO_MODE_TYPE = {
-    SHORTEST: 'SHORTEST',
-    FASTEST: 'FASTEST',
-    HIGHEST_LEVEL: 'HIGHEST_LEVEL',
-    LOWEST_LEVEL: 'LOWEST_LEVEL'
-}
-
 const autoMode = {
     isActive: false,
     isFinished: false,
-    type: AUTO_MODE_TYPE
+    type: AUTO_MODE_TYPE.SHORTEST
 }
 
 const kakaoMap = initMap(
@@ -199,6 +199,9 @@ function drawRoads() {
             if (road.isClicked) {
                 showSelectRoads();
             } else {
+                if (autoMode.isFinished) {
+                    return;
+                }
                 setStrokeColor(line, getColor(level, "LIGHT"));
             }
         });
@@ -216,7 +219,7 @@ function drawRoads() {
 function handleAutoMode(road) {
     if (autoMode.isFinished) {
         if (confirmReset()) {
-            resetAutoMode(selects);
+            resetMode();
         }
         return;
     }
@@ -224,6 +227,7 @@ function handleAutoMode(road) {
     const leafNodeId = graph.findLeafNodeIncluded(road.roadId);
     if (road.isClicked && selects.size() === 1) {
         unselectRoad(road);
+        road.isClicked = false;
         return;
     }
 
@@ -257,15 +261,18 @@ function handleManualMode(road) {
 }
 
 function confirmReset() {
-    return confirm("추천 경로를 초기화 하시겠습니까?");
+    return confirm("선택 경로가 초기화됩니다. 진행하시겠습니까?");
 }
 
-function resetAutoMode() {
-    autoMode.isFinished = false;
-    hideSelectRoads(selects.first());
-    selects.reset();
+function resetMode() {
+    if (!selects.isEmpty()) {
+        deleteSelectRoads(selects.first());
+    }
     resetSummary();
     showSummaries();
+    if (autoMode.isActive) {
+        autoMode.isFinished = false;
+    }
 }
 
 function unselectRoad(road) {
@@ -273,27 +280,36 @@ function unselectRoad(road) {
     setStrokeColor(road.line, getColor(road.level, "MIDDLE"));
 }
 
-function selectRoad(road, fromNodeId, leafNodeId = null) {
-    addSelectRoad(road, fromNodeId, leafNodeId);
-    showSelectRoad(road.roadId);
-}
-
 function runAutoMode() {
-    hideSelectRoads(selects.first());
-    resetSummary();
+    const current = selects.peek();
+    const previous = selects.first();
+    let roadIds;
 
-    const current = selects.pop();
-    const previous = selects.pop();
-    const roadIds = graph.findLowestLevelPath(previous.leafNodeId, current.leafNodeId);
+    if (autoMode.type === AUTO_MODE_TYPE.SHORTEST) {
+        roadIds = graph.findShortestPath(previous.leafNodeId, current.leafNodeId);
+    } else if (autoMode.type === AUTO_MODE_TYPE.FASTEST) {
+        roadIds = graph.findFastestPath(previous.leafNodeId, current.leafNodeId);
+    } else if (autoMode.type === AUTO_MODE_TYPE.HARDEST) {
+        roadIds = graph.findHardestPath(previous.leafNodeId, current.leafNodeId);
+    } else if (autoMode.type === AUTO_MODE_TYPE.EASIEST) {
+        roadIds = graph.findEasiestPath(previous.leafNodeId, current.leafNodeId);
+    }
 
+    resetMode();
     roadIds.forEach(roadId => {
         const fromNodeId = handleClick(roadId);
         const road = roads.get(roadId);
+        road.isClicked = true;
         selectRoad(road, fromNodeId);
     });
 
     showSummaries();
     autoMode.isFinished = true;
+}
+
+function selectRoad(road, fromNodeId, leafNodeId = null) {
+    addSelectRoad(road, fromNodeId, leafNodeId);
+    showSelectRoad(road);
 }
 
 function handleClick(roadId) {
@@ -326,27 +342,33 @@ function addSelectRoad(road, fromNodeId, leafNodeId) {
         road.leafNodeId = leafNodeId;
     }
 
-    const {coordList, ...rest} = road;
-    selects.push(road.roadId, rest);
+    delete road.coordList;
+    selects.push(road.roadId, road);
     increaseSummary(road);
 }
 
 function deleteSelectRoads(road) {
-    processAfterIndex(road, (key) => {
-        hideSelectRoad(key);
-        decreaseSummary(selects.findValueByKey(key));
+    processAfterIndex(road, (key, value) => {
+        decreaseSummary(value);
+        hideSelectRoad(value);
+
+        value.isClicked = false;
+        if (value.marker) {
+            delete value.marker;
+            delete value.customOverlay;
+        }
+
         selects.deleteByKey(key);
     });
 }
 
 function hideSelectRoads(road) {
-    processAfterIndex(road, (key) => {
-        hideSelectRoad(key);
+    processAfterIndex(road, (_, value) => {
+        hideSelectRoad(value);
     });
 }
 
-function hideSelectRoad(key) {
-    const road = selects.findValueByKey(key);
+function hideSelectRoad(road) {
     road.marker.setMap(null);
     road.customOverlay.setMap(null);
     setStrokeColor(road.line, getColor(road.level, "LIGHT"));
@@ -354,12 +376,10 @@ function hideSelectRoad(key) {
 }
 
 function showSelectRoads() {
-    selects.forEach((value, key) => showSelectRoad(key));
+    selects.forEach((value) => showSelectRoad(value));
 }
 
-function showSelectRoad(key) {
-    const road = selects.findValueByKey(key);
-    if (road === undefined) return;
+function showSelectRoad(road) {
     if (!road.marker) {
         const markerConfig = SELECT_MARKERS[LEVELS[road.level]];
         const position = new kakao.maps.LatLng(road.fromNode.y, road.fromNode.x);
@@ -378,7 +398,8 @@ function processAfterIndex(road, callback) {
     const index = keys.indexOf(road.roadId);
     if (index === -1) return;
     keys.slice(index).forEach(key => {
-        callback(key, road, selects);
+        const value = selects.findValueByKey(key);
+        callback(key, value);
     });
 }
 
