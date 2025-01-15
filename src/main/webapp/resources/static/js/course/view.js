@@ -231,6 +231,7 @@ function drawRoads() {
 
         line.addListener('mouseout', () => {
             if (road.isClicked) {
+                setStrokeColor(line, getColor(level, "LIGHT"));
                 showSelectRoads();
             } else {
                 if (autoMode.isFinished) {
