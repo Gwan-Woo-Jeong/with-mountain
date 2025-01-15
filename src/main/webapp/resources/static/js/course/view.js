@@ -123,18 +123,18 @@ $(document).ready(function () {
         autoMode.type = AUTO_MODE_TYPE[key];
 
         if (selects.size() >= 2) {
-            runAutoMode();
+            findAutoTypeCourse();
         }
     });
 });
 
 function handleModeChange(isAutoSelected) {
-    if (!selects.isEmpty() && !confirmReset()) {
+    if (!selects.isEmpty() && !confirmResetCourse()) {
         const oppositeRadio = isAutoSelected ? $('#same') : $('#diff');
         oppositeRadio.prop('checked', true);
         return;
     }
-    resetMode();
+    resetCourse();
     $('.mode-menu').toggleClass('disabled', !isAutoSelected);
     autoMode.isActive = isAutoSelected;
 }
@@ -243,18 +243,18 @@ function drawRoads() {
 
         line.addListener('click', () => {
             if (autoMode.isActive) {
-                handleAutoMode(road);
+                handleAutoRoadClick(road);
             } else {
-                handleManualMode(road);
+                handleManualRoadClick(road);
             }
         });
     }
 }
 
-function handleAutoMode(road) {
+function handleAutoRoadClick(road) {
     if (autoMode.isFinished) {
-        if (confirmReset()) {
-            resetMode();
+        if (confirmResetCourse()) {
+            resetCourse();
         }
         return;
     }
@@ -276,12 +276,12 @@ function handleAutoMode(road) {
     selectRoad(road, fromNodeId, leafNodeId);
 
     if (selects.size() === 2) {
-        runAutoMode();
+        findAutoTypeCourse();
         showSummaries();
     }
 }
 
-function handleManualMode(road) {
+function handleManualRoadClick(road) {
     if (road.isClicked) {
         unselectRoad(road);
         toggleDisableSaveButton(true);
@@ -312,11 +312,11 @@ function toggleDisableSaveButton(disabled) {
     }
 }
 
-function confirmReset() {
+function confirmResetCourse() {
     return confirm("선택 경로가 초기화됩니다. 진행하시겠습니까?");
 }
 
-function resetMode() {
+function resetCourse() {
     if (!selects.isEmpty()) {
         deleteSelectRoads(selects.first());
     }
@@ -334,7 +334,7 @@ function unselectRoad(road) {
     setStrokeColor(road.line, getColor(road.level, "MIDDLE"));
 }
 
-function runAutoMode() {
+function findAutoTypeCourse() {
     const current = selects.peek();
     const previous = selects.first();
     let roadIds;
@@ -349,7 +349,7 @@ function runAutoMode() {
         roadIds = graph.findEasiestPath(previous.leafNodeId, current.leafNodeId);
     }
 
-    resetMode();
+    resetCourse();
     roadIds.forEach(roadId => {
         const fromNodeId = handleClick(roadId);
         const road = roads.get(roadId);
