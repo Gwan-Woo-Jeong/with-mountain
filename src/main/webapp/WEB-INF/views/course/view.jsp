@@ -28,6 +28,7 @@
     </div>
 
     <div class="menu-area">
+        <div id="capture-area"></div>
         <div class="menu-window">
             <h1>커스텀 코스 모드</h1>
             <form action="submit-url" method="POST">
@@ -126,9 +127,19 @@
                     </li>
                 </ul>
 
-                <button class="save" type="submit" disabled>코스 저장하기</button>
+                <button class="save" type="button" disabled>코스 저장하기</button>
+                <button class="capturing" type="button" disabled>코스 캡처 중...</button>
             </form>
         </div>
     </div>
+    <div class="dialog-background">
+        <dialog class="content">
+            <img class="image" src="" alt="생성된 커스텀 코스">
+            <p class="message">해당 커스텀 코스를 저장하시겠습니까?</p>
+            <div class="button-wrap">
+                <button class="confirm">확인</button>
+                <button class="cancel">취소</button>
+            </div>
+        </dialog>
+    </div>
 </div>
-<script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=d8de9ed5ee23a0becf5c950f18bbddf4"></script>

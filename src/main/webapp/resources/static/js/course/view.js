@@ -7,6 +7,7 @@
 import {initMap} from './common.js';
 import Graph from './Graph.js';
 import MapStack from './MapStack.js';
+import {captureHTML} from "./capture.js";
 
 const MIN_ZOOM_LEVEL = 7;
 const MAX_ZOOM_LEVEL = 1;
@@ -89,6 +90,8 @@ const autoMode = {
     type: AUTO_MODE_TYPE.SHORTEST
 }
 
+let isCapturing = false;
+
 const kakaoMap = initMap(
     '#view-map',
     parseFloat(mtY),
@@ -105,6 +108,7 @@ const roads = new Map();
 drawRoads();
 drawSpotMarkers();
 
+// 메뉴 조작
 $(document).ready(function () {
     $('#same').on('change', function () {
         if ($(this).is(':checked')) {
@@ -139,6 +143,103 @@ function handleModeChange(isAutoSelected) {
     autoMode.isActive = isAutoSelected;
 }
 
+// 코스 캡처
+$(document).ready(function () {
+    const saveButton = $('.save');
+    const captureButton = $('.capturing');
+    const captureArea = $('#capture-area');
+    let isSelecting = false;
+    let startX, startY, imageUrl;
+
+    $(document).on('mousedown', function (e) {
+        if (!isCapturing) return;
+        if (e.button !== 0) return;
+
+        kakaoMap.setDraggable(false);
+
+        isSelecting = true;
+        startX = e.pageX - 20;
+        startY = e.pageY - 80;
+
+        captureArea.css({
+            left: startX + 'px',
+            top: startY + 'px',
+            width: '0px',
+            height: '0px',
+            display: 'block',
+        });
+    });
+
+    $(document).on('mousemove', function (e) {
+        if (!isCapturing) return;
+        if (!isSelecting) return;
+
+        let currentX = e.pageX - 20;
+        let currentY = e.pageY - 80;
+
+        let width = Math.abs(currentX - startX);
+        let height = Math.abs(currentY - startY);
+
+        captureArea.css({
+            width: width + 'px',
+            height: height + 'px',
+            left: (currentX > startX ? startX : currentX) + 'px',
+            top: (currentY > startY ? startY : currentY) + 'px',
+        });
+    });
+
+
+    $(document).on('mouseup', async function () {
+        if (!isCapturing) return;
+        if (!isSelecting) return;
+        isSelecting = false;
+
+        const rect = captureArea[0].getBoundingClientRect();
+
+        const option = {
+            x: rect.left + window.scrollX,
+            y: rect.top + window.scrollY,
+            width: rect.width,
+            height: rect.height,
+            scale: 2,
+            allowTaint: false,
+            logging: false,
+            proxy: path + '/html2canvas/proxy'
+        };
+
+        captureArea.css('display', 'none');
+        imageUrl = await captureHTML(document.body, option);
+        isCapturing = false;
+        saveButton.show();
+        captureButton.hide();
+        kakaoMap.setDraggable(true);
+
+        $('.dialog-background').addClass('show');
+        $('.dialog-background .image').prop('src', imageUrl);
+    });
+
+    saveButton.on('click', function (e) {
+        if (!confirm('코스를 캡처한 후 저장합니다.\n코스가 잘 보이도록 해당 영역을 드래그하여 캡처해주세요!')) {
+            return;
+        }
+        isCapturing = true;
+        saveButton.hide();
+        captureButton.show();
+    });
+
+    $('.dialog-background .cancel').on('click', function (e) {
+        e.preventDefault();
+        $('.dialog-background').removeClass('show');
+        console.log('취소');
+    });
+
+    $('.dialog-background .confirm').on('click', function (e) {
+        e.preventDefault();
+        console.log('저장하기');
+    });
+});
+
+// 코스 생성
 async function loadJSON() {
     try {
         const jsonPath = new URL('resources/static/data/mountain.json', 'http://localhost:8090/hike/');
@@ -217,7 +318,7 @@ function drawRoads() {
         line.setMap(kakaoMap);
 
         line.addListener('mouseover', () => {
-            if (autoMode.isActive && selects.size() > 1) {
+            if (autoMode.isActive && selects.size() > 1 || isCapturing) {
                 return;
             }
 
@@ -230,6 +331,7 @@ function drawRoads() {
         });
 
         line.addListener('mouseout', () => {
+            if (isCapturing) return;
             if (road.isClicked) {
                 setStrokeColor(line, getColor(level, "LIGHT"));
                 showSelectRoads();
@@ -242,6 +344,7 @@ function drawRoads() {
         });
 
         line.addListener('click', () => {
+            if (isCapturing) return;
             if (autoMode.isActive) {
                 handleAutoRoadClick(road);
             } else {
@@ -307,7 +410,7 @@ function handleManualRoadClick(road) {
 
 function toggleDisableSaveButton(disabled) {
     const saveButton = $('.save');
-    if(saveButton.prop('disabled') !== disabled){
+    if (saveButton.prop('disabled') !== disabled) {
         saveButton.prop('disabled', disabled);
     }
 }
