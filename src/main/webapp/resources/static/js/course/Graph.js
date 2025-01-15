@@ -65,82 +65,87 @@ class Graph {
         }) || null;
     }
 
-    findShortestPath(start, end) {
-        return this.findPath(start, end, 'distance', Math.min);
-    }
-
-    findFastestPath(start, end) {
-        return this.findPath(start, end, 'time', Math.min);
-    }
-
-    findHardestPath(start, end) {
-        return this.findPath(start, end, 'level', Math.max);
-    }
-
-    findEasiestPath(start, end) {
-        return this.findPath(start, end, 'level', Math.min);
-    }
-
-    findPath(start, end, costType, comparator) {
-        if (!this.nodes.has(start)) {
-            throw new Error(`[Graph] findPath: ${start} 노드 없음`);
-        }
-
-        if (!this.nodes.has(end)) {
-            throw new Error(`[Graph] findPath: ${end} 노드 없음`);
-        }
-
-        const costs = new Map();
+    dijkstra(startNode, endNode, getEdgeWeight) {
+        const distances = new Map();
         const previousNodes = new Map();
+        const previousEdges = new Map();
         const visited = new Set();
-        const priorityQueue = [];
 
-        for (const node of this.nodes.keys()) {
-            costs.set(node, comparator === Math.min ? Infinity : -Infinity);
+        for (const nodeId of this.nodes.keys()) {
+            distances.set(nodeId, Infinity);
+            previousNodes.set(nodeId, null);
+            previousEdges.set(nodeId, null);
         }
-        costs.set(start, comparator === Math.min ? 0 : 0);
-        priorityQueue.push({node: start, cost: costs.get(start)});
+        distances.set(startNode, 0);
 
-        while (priorityQueue.length > 0) {
-            priorityQueue.sort((a, b) => comparator(a.cost, b.cost));
-            const {node: current} = priorityQueue.shift();
+        const queue = [{nodeId: startNode, distance: 0}];
 
-            if (visited.has(current)) continue;
-            visited.add(current);
+        while (queue.length > 0) {
+            queue.sort((a, b) => a.distance - b.distance);
 
-            if (current === end) break;
+            const {nodeId: currentNode} = queue.shift();
 
-            const edges = this.nodes.get(current) || [];
+            if (visited.has(currentNode)) {
+                continue;
+            }
+            visited.add(currentNode);
+
+            if (currentNode === endNode) {
+                break;
+            }
+            const edges = this.nodes.get(currentNode);
+
             for (const edge of edges) {
-                const {node: neighbor, id} = edge;
-                const edgeCost = edge[costType];
-
-                if (visited.has(neighbor)) continue;
-
-                const newCost = costs.get(current) + edgeCost;
-                if (comparator(newCost, costs.get(neighbor)) === newCost) {
-                    costs.set(neighbor, newCost);
-                    previousNodes.set(neighbor, {node: current, edgeId: id});
-                    priorityQueue.push({node: neighbor, cost: newCost});
+                const neighbor = edge.node;
+                if (visited.has(neighbor)) {
+                    continue;
+                }
+                const weight = getEdgeWeight(edge);
+                const alt = distances.get(currentNode) + weight;
+                if (alt < distances.get(neighbor)) {
+                    distances.set(neighbor, alt);
+                    previousNodes.set(neighbor, currentNode);
+                    previousEdges.set(neighbor, edge); // Store the edge via which we reached neighbor
+                    queue.push({nodeId: neighbor, distance: alt});
                 }
             }
         }
 
-        const pathEdges = [];
-        let currentNode = end;
+        const edgePath = [];
+        let currentNode = endNode;
 
-        while (currentNode !== start) {
-            const previous = previousNodes.get(currentNode);
-            if (!previous) {
-                return null; // No path exists
+        while (currentNode !== null && currentNode !== startNode) {
+            const edge = previousEdges.get(currentNode);
+            if (edge) {
+                edgePath.unshift(edge.id);
+                currentNode = previousNodes.get(currentNode);
+            } else {
+                return null;
             }
-            pathEdges.unshift(previous.edgeId); // Add edgeId to the path
-            currentNode = previous.node;
         }
+        if (currentNode === startNode) {
+            return edgePath;
+        } else {
+            return null; // No path found
+        }
+    }
 
-        return pathEdges;
+    findShortestPath(startNode, endNode) {
+        return this.dijkstra(startNode, endNode, (edge) => edge.distance);
+    }
+
+    findFastestPath(startNode, endNode) {
+        return this.dijkstra(startNode, endNode, (edge) => edge.time);
+    }
+
+    findEasiestPath(startNode, endNode) {
+        return this.dijkstra(startNode, endNode, (edge) => edge.level);
+    }
+
+    findHardestPath(startNode, endNode) {
+        const maxLevel = 3;
+        return this.dijkstra(startNode, endNode, (edge) => maxLevel - edge.level);
     }
 }
-
 
 export default Graph;

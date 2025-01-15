@@ -105,6 +105,40 @@ const roads = new Map();
 drawRoads();
 drawSpotMarkers();
 
+$(document).ready(function () {
+    $('#same').on('change', function () {
+        if ($(this).is(':checked')) {
+            handleModeChange(false);
+        }
+    });
+
+    $('#diff').on('change', function () {
+        if ($(this).is(':checked')) {
+            handleModeChange(true);
+        }
+    });
+
+    $('input[name="type"]').on('change', function () {
+        const key = $(this).val().toUpperCase();
+        autoMode.type = AUTO_MODE_TYPE[key];
+
+        if (selects.size() >= 2) {
+            runAutoMode();
+        }
+    });
+});
+
+function handleModeChange(isAutoSelected) {
+    if (!selects.isEmpty() && !confirmReset()) {
+        const oppositeRadio = isAutoSelected ? $('#same') : $('#diff');
+        oppositeRadio.prop('checked', true);
+        return;
+    }
+    resetMode();
+    $('.mode-menu').toggleClass('disabled', !isAutoSelected);
+    autoMode.isActive = isAutoSelected;
+}
+
 async function loadJSON() {
     try {
         const jsonPath = new URL('resources/static/data/mountain.json', 'http://localhost:8090/hike/');
@@ -241,7 +275,7 @@ function handleAutoMode(road) {
     selectRoad(road, fromNodeId, leafNodeId);
 
     if (selects.size() === 2) {
-        runAutoMode(selects);
+        runAutoMode();
         showSummaries();
     }
 }
@@ -454,10 +488,8 @@ function showTimeSummary(key, value) {
     const selector = `#time .${key.toLowerCase()}`;
 
     updateDisplay(selector, value > 0);
-
     updateDisplay(`${selector} .hour`, hour);
     updateText(`${selector} .hour`, hour);
-
     updateText(`${selector} .minute`, roundMinuteIfHour(hour, minute));
 }
 
@@ -469,7 +501,6 @@ function showTotalTimeSummary() {
 
     updateDisplay(`${selector} .hour`, hour);
     updateText(`${selector} .hour`, hour);
-
     updateText(`${selector} .minute`, roundMinuteIfHour(hour, minute));
 }
 
