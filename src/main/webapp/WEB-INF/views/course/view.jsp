@@ -126,7 +126,7 @@
                     </li>
                 </ul>
 
-                <button class="save" type="submit">등산로 저장하기</button>
+                <button class="save" type="submit" disabled>코스 저장하기</button>
             </form>
         </div>
     </div>

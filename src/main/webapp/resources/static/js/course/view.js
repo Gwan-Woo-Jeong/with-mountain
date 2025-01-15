@@ -283,15 +283,32 @@ function handleAutoMode(road) {
 function handleManualMode(road) {
     if (road.isClicked) {
         unselectRoad(road);
+        toggleDisableSaveButton(true);
     } else {
+        const leafNodeId = graph.findLeafNodeIncluded(road.roadId);
         const fromNodeId = handleClick(road.roadId);
         if (fromNodeId) {
-            selectRoad(road, fromNodeId);
+            selectRoad(road, fromNodeId, leafNodeId);
+        }
+
+        if (selects.size() > 1) {
+            const last = selects.peek();
+            const first = selects.first();
+            if (last.leafNodeId && first.leafNodeId) {
+                toggleDisableSaveButton(false);
+            }
         }
     }
 
     road.isClicked = !road.isClicked;
     showSummaries();
+}
+
+function toggleDisableSaveButton(disabled) {
+    const saveButton = $('.save');
+    if(saveButton.prop('disabled') !== disabled){
+        saveButton.prop('disabled', disabled);
+    }
 }
 
 function confirmReset() {
@@ -307,6 +324,8 @@ function resetMode() {
     if (autoMode.isActive) {
         autoMode.isFinished = false;
     }
+
+    toggleDisableSaveButton(true);
 }
 
 function unselectRoad(road) {
@@ -339,6 +358,7 @@ function runAutoMode() {
 
     showSummaries();
     autoMode.isFinished = true;
+    toggleDisableSaveButton(false);
 }
 
 function selectRoad(road, fromNodeId, leafNodeId = null) {
