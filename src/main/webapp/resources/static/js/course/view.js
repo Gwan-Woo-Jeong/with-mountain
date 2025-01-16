@@ -42,7 +42,7 @@ const STROKE_WEIGHTS = {
 }
 
 const SPOT_TYPES = {
-    '시종점': {imgSrc: '/hike/resources/static/images/spot-startend.svg', imgSize: [16, 16]},
+    '시종점': {imgSrc: '/hike/resources/static/images/spot-start.svg', imgSize: [16, 16]},
     '분기점': {imgSrc: '/hike/resources/static/images/point.svg', imgSize: [5, 5]}
 };
 
@@ -352,6 +352,7 @@ function drawRoads() {
             }
         });
     }
+    console.log(graph);
 }
 
 function handleAutoRoadClick(road) {
@@ -391,6 +392,8 @@ function handleManualRoadClick(road) {
     } else {
         const leafNodeId = graph.findLeafNodeIncluded(road.roadId);
         const fromNodeId = handleClick(road.roadId);
+
+        console.log(leafNodeId);
         if (fromNodeId) {
             selectRoad(road, fromNodeId, leafNodeId);
         }
