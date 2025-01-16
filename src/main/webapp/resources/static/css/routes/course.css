@@ -358,13 +358,35 @@
 }
 
 .dialog-background .image {
+    background-color: var(--black);
     width: 400px;
     max-height: 400px;
     object-fit: contain;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+}
+
+.dialog-background .course-name-input {
+    width: 100%;
+    height: 40px;
+    padding: 0 12px;
+    border: 1px solid var(--gray06);
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
+    outline: none;
+    background-color: transparent;
+    font-weight: 500;
+    font-size: 14px;
+    color: var(--gray01);
+    text-align: center;
+}
+
+.dialog-background .course-name-input::placeholder {
+    font-weight: 400;
+    color: var(--gray04);
 }
 
 .dialog-background .message {
-    font-weight: 500;
     color: var(--gray01);
     margin-top: 20px;
 }
@@ -382,6 +404,12 @@
     font-weight: 500;
     border-radius: 10px;
     font-size: 15px;
+}
+
+.dialog-background .button-wrap .confirm:disabled {
+    color: var(--white);
+    background-color: var(--gray03);
+    cursor: not-allowed;
 }
 
 .dialog-background .button-wrap .confirm {

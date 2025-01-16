@@ -135,9 +135,10 @@
     <div class="dialog-background">
         <dialog class="content">
             <img class="image" src="" alt="생성된 커스텀 코스">
+            <input class="course-name-input" type="text" placeholder="코스명을 입력해주세요!">
             <p class="message">해당 커스텀 코스를 저장하시겠습니까?</p>
             <div class="button-wrap">
-                <button class="confirm">확인</button>
+                <button class="confirm" disabled>확인</button>
                 <button class="cancel">취소</button>
             </div>
         </dialog>

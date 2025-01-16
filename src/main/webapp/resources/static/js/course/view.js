@@ -99,8 +99,6 @@ const kakaoMap = initMap(
     MIN_ZOOM_LEVEL,
     MAX_ZOOM_LEVEL);
 
-console.log(data);
-
 const graph = new Graph();
 const selects = new MapStack();
 const roads = new Map();
@@ -227,6 +225,11 @@ $(document).ready(function () {
         captureButton.show();
     });
 
+    $('.dialog-background .course-name-input').on('input', function (e) {
+        const courseName = $(this).val();
+        $('.dialog-background .confirm').prop('disabled', courseName.length === 0);
+    })
+
     $('.dialog-background .cancel').on('click', function (e) {
         e.preventDefault();
         $('.dialog-background').removeClass('show');
@@ -352,7 +355,6 @@ function drawRoads() {
             }
         });
     }
-    console.log(graph);
 }
 
 function handleAutoRoadClick(road) {
@@ -393,7 +395,6 @@ function handleManualRoadClick(road) {
         const leafNodeId = graph.findLeafNodeIncluded(road.roadId);
         const fromNodeId = handleClick(road.roadId);
 
-        console.log(leafNodeId);
         if (fromNodeId) {
             selectRoad(road, fromNodeId, leafNodeId);
         }
