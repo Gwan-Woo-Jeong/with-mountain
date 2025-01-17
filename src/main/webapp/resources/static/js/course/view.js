@@ -19,6 +19,7 @@ import {
     showSelectRoad,
     showSelectRoads
 } from "./custom/mapUtils.js";
+import {showLoginModal} from "../common.js";
 
 const data = await loadJSON(); // For Test
 const queryString = window.location.search;
@@ -130,6 +131,11 @@ $(document).ready(function () {
     });
 
     saveButton.on('click', function () {
+        if (!userInfo.userId) {
+            alert(MESSAGES.NEED_LOGIN);
+            showLoginModal();
+            return;
+        }
         if (!confirm(MESSAGES.SAVE_COURSE)) {
             return;
         }

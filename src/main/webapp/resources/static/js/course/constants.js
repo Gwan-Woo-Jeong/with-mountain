@@ -68,5 +68,6 @@ export const MESSAGES = {
     NO_CONNECTION: "이전 등산로과 연결된 등산로를 선택해주세요!",
     START_END_FIRST: "시종점과 연결된 등산로부터 선택해주세요!",
     SAVE_COURSE: '코스를 캡처한 후 저장합니다.\n코스가 잘 보이도록 해당 영역을 드래그하여 캡처해주세요!',
-    SAVE_SUCCESS: '커스텀 코스가 성공적으로 저장되었습니다!'
+    SAVE_SUCCESS: '커스텀 코스가 성공적으로 저장되었습니다!',
+    NEED_LOGIN: '로그인 후 이용해주세요!'
 }

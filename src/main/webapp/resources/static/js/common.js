@@ -1,6 +1,5 @@
 import {PATHS} from "./constants.js";
 
-
 // DOM이 로드된 후 실행될 초기화 함수들
 $(document).ready(function () {
     checkLoginRequired();
@@ -61,7 +60,7 @@ function setActiveNavFromUrl() {
 }
 
 // 모달 제어 함수들
-function showLoginModal() {
+export function showLoginModal() {
     $('#login-overlay').css('display', 'flex');
     lockScroll();
 }
