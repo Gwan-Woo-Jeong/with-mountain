@@ -18,7 +18,7 @@
 
 		<typeAlias type="com.test.hike.dto.CommunityBoardDTO" alias="CommunityBoardDTO"/>
 		<typeAlias type="com.test.hike.dto.CommentsDTO" alias="CommentsDTO"/>
-		<typeAlias type="com.test.hike.dto.CustomCourseDTO" alias="CustomCourseDTO" />
+		<typeAlias type="com.test.hike.dto.CourseItemDTO" alias="CustomCourseDTO" />
 	</typeAliases>
 	
 	

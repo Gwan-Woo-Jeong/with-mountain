@@ -147,7 +147,7 @@ $(document).ready(function () {
     const captureButton = $('.capturing');
     const captureArea = $('#capture-area');
     let isSelecting = false;
-    let startX, startY, imageUrl;
+    let startX, startY, imageData;
 
     $(document).on('mousedown', function (e) {
         if (!isCapturing) return;
@@ -206,14 +206,14 @@ $(document).ready(function () {
         };
 
         captureArea.css('display', 'none');
-        imageUrl = await captureHTML(document.body, option);
+        imageData = await captureHTML(document.body, option);
         isCapturing = false;
         saveButton.show();
         captureButton.hide();
         kakaoMap.setDraggable(true);
 
         $('.dialog-background').addClass('show');
-        $('.dialog-background .image').prop('src', imageUrl);
+        $('.dialog-background .image').prop('src', imageData);
     });
 
     saveButton.on('click', function (e) {
@@ -233,12 +233,51 @@ $(document).ready(function () {
     $('.dialog-background .cancel').on('click', function (e) {
         e.preventDefault();
         $('.dialog-background').removeClass('show');
-        console.log('취소');
     });
 
     $('.dialog-background .confirm').on('click', function (e) {
         e.preventDefault();
-        console.log('저장하기');
+        const courseItems = []
+
+        selects.forEach((select, _, index) => {
+            courseItems.push({
+                courseItemId: null,
+                roadId: select.roadId,
+                courseId: null,
+                courseOrder: index + 1,
+            })
+        })
+
+        $.ajax({
+            type: 'POST',
+            url: path + '/course/add',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                course: {
+                    userId: 1,
+                    courseId: null,
+                    mtId: data.mtId,
+                    title: $('.dialog-background .course-name-input').val(),
+                    type: 'CUSTOM',
+                    image: imageData,
+                    time: summary.time.EASY + summary.time.MEDIUM + summary.time.HARD,
+                    distance: truncDecimal(summary.distance.EASY + summary.distance.MEDIUM + summary.distance.HARD)
+                },
+                courseItems
+            }),
+            success: function () {
+                alert('커스텀 코스가 성공적으로 저장되었습니다!')
+                $('.dialog-background').removeClass('show');
+            },
+            error: function (xhr, textStatus, errorThrown) {
+                console.error(`POST 실패\n
+                Status: ${xhr.status}\n
+                Error: ${xhr.statusText}\n
+                Response: ${xhr.responseText}\n
+                Text Status: ${textStatus}\n
+                Error: ${errorThrown}`);
+            },
+        });
     });
 });
 

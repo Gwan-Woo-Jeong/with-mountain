@@ -4,82 +4,98 @@
 <!-- mapper 파일의 역할? : SQL query 작성 -->
 <!-- mapper(java)파일의 경로와 함께 namespace에 파일명을 적는 것이 개발계의 관습. -->
 <mapper namespace="com.test.hike.mapper.MapCustomMapper">
-	
-	<!-- MyBatis가 DB의 컬럼명과 DTO의 필드명을 잘 매핑할 수 있게 resultMap 명시. -->
-	<resultMap id="SpotDTOMap" type="HikingRoadSpotDTO">
-	    <result property="spotId" column="spot_id"/>
-	    <result property="mtId" column="mt_id"/>
-	    <result property="spotType" column="spot_type"/>
-	    <result property="spotX" column="spot_x"/>
-	    <result property="spotY" column="spot_y"/>
-	</resultMap>
-	
-	<select id="getHikingRoadSpots" resultMap="SpotDTOMap">
-		SELECT spot_id, mt_id, spot_type, spot_x, spot_y FROM HikingRoadSpot
-	</select>
 
-	<resultMap id="MountainDTOMap" type="MountainDTO">
-		<result property="mtId" column="mt_id"/>
-		<result property="mtName" column="mt_name"/>
-		<result property="mtAddress" column="mt_address"/>
-		<result property="mtX" column="mt_x"/>
-		<result property="mtY" column="mt_y"/>
-	</resultMap>
+    <!-- MyBatis가 DB의 컬럼명과 DTO의 필드명을 잘 매핑할 수 있게 resultMap 명시. -->
+    <resultMap id="SpotDTOMap" type="HikingRoadSpotDTO">
+        <result property="spotId" column="spot_id"/>
+        <result property="mtId" column="mt_id"/>
+        <result property="spotType" column="spot_type"/>
+        <result property="spotX" column="spot_x"/>
+        <result property="spotY" column="spot_y"/>
+    </resultMap>
 
-	<select id="getSearchMountainSpots" resultMap="MountainDTOMap">
-		select * from MountainList
-	</select>
+    <select id="getHikingRoadSpots" resultMap="SpotDTOMap">
+        SELECT spot_id, mt_id, spot_type, spot_x, spot_y FROM HikingRoadSpot
+    </select>
 
-	<resultMap id="CustomCoordDTOMap" type="CustomCoordDTO">
-		<id property="coordId" column="coord_id"/>
-		<result property="roadSeq" column="road_seq"/>
-		<result property="roadX" column="road_x"/>
-		<result property="roadY" column="road_y"/>
-	</resultMap>
+    <resultMap id="MountainDTOMap" type="MountainDTO">
+        <result property="mtId" column="mt_id"/>
+        <result property="mtName" column="mt_name"/>
+        <result property="mtAddress" column="mt_address"/>
+        <result property="mtX" column="mt_x"/>
+        <result property="mtY" column="mt_y"/>
+    </resultMap>
 
-	<resultMap id="CustomRoadDTOMap" type="CustomRoadDTO">
-		<id property="roadId" column="road_id"/>
-		<result property="roadKm" column="road_km"/>
-		<result property="roadLevel" column="road_level"/>
-		<result property="roadTimeUp" column="road_time_up"/>
-		<result property="roadTimeDown" column="road_time_down"/>
-		<collection property="coordList" ofType="CustomCoordDTO" resultMap="CustomCoordDTOMap"/>
-	</resultMap>
+    <select id="getSearchMountainSpots" resultMap="MountainDTOMap">
+        select * from MountainList
+    </select>
 
-	<resultMap id="CustomMountainDTOMap" type="CustomMountainDTO">
-		<id property="mtId" column="mt_id"/>
-		<result property="mtName" column="mt_name"/>
-		<result property="mtAddress" column="mt_address"/>
-		<result property="mtX" column="mt_x"/>
-		<result property="mtY" column="mt_y"/>
-		<collection property="roadList" ofType="CustomRoadDTO" resultMap="CustomRoadDTOMap"/>
-	</resultMap>
+    <resultMap id="CustomCoordDTOMap" type="CustomCoordDTO">
+        <id property="coordId" column="coord_id"/>
+        <result property="roadSeq" column="road_seq"/>
+        <result property="roadX" column="road_x"/>
+        <result property="roadY" column="road_y"/>
+    </resultMap>
 
-	<select id="getAllRoadsWithCoordsByMtId" resultMap="CustomMountainDTOMap">
-		select *
-		from (select * from MountainList where MT_ID = #{mtId}) mt
-		inner join HikingRoadInfo rd on mt.MT_ID = rd.MT_ID
-		inner join HikingRoadCoord cd on rd.ROAD_ID = cd.ROAD_ID
-	</select>
+    <resultMap id="CustomRoadDTOMap" type="CustomRoadDTO">
+        <id property="roadId" column="road_id"/>
+        <result property="roadKm" column="road_km"/>
+        <result property="roadLevel" column="road_level"/>
+        <result property="roadTimeUp" column="road_time_up"/>
+        <result property="roadTimeDown" column="road_time_down"/>
+        <collection property="coordList" ofType="CustomCoordDTO" resultMap="CustomCoordDTOMap"/>
+    </resultMap>
 
-	<resultMap id="RoadDTOMap" type="RoadDTO">
-		<result property="coordId" column="coord_id"/>
-		<result property="mtId" column="mt_id"/>
-		<result property="roadId" column="road_id"/>
-		<result property="roadKm" column="road_km"/>
-		<result property="roadLevel" column="road_level"/>
-		<result property="roadTimeUp" column="road_time_up"/>
-		<result property="roadTimeDown" column="road_time_down"/>
-		<result property="roadSeq" column="road_seq"/>
-		<result property="roadX" column="road_x"/>
-		<result property="roadY" column="road_y"/>
-	</resultMap>
+    <resultMap id="CustomMountainDTOMap" type="CustomMountainDTO">
+        <id property="mtId" column="mt_id"/>
+        <result property="mtName" column="mt_name"/>
+        <result property="mtAddress" column="mt_address"/>
+        <result property="mtX" column="mt_x"/>
+        <result property="mtY" column="mt_y"/>
+        <collection property="roadList" ofType="CustomRoadDTO" resultMap="CustomRoadDTOMap"/>
+    </resultMap>
 
-	<select id="getHikingRoads" resultMap="RoadDTOMap">
-		SELECT coord_id, mt_id, road_id, road_km, road_level, road_time_up, road_time_down, road_seq, road_x, road_y FROM ViewHikingRoad
-	</select>
+    <select id="getAllRoadsWithCoordsByMtId" resultMap="CustomMountainDTOMap">
+        select *
+        from (select * from MountainList where MT_ID = #{mtId}) mt
+        inner join HikingRoadInfo rd on mt.MT_ID = rd.MT_ID
+        inner join HikingRoadCoord cd on rd.ROAD_ID = cd.ROAD_ID
+    </select>
 
-	<!--<insert id="CustomCourseDTO">
-		INSERT INTO CourseItem (course_item_id, road_id, course_id, course_order) VALUES (seqCourseItem.nextVal, #{lineNo},
-	</insert>-->
+    <resultMap id="RoadDTOMap" type="RoadDTO">
+        <result property="coordId" column="coord_id"/>
+        <result property="mtId" column="mt_id"/>
+        <result property="roadId" column="road_id"/>
+        <result property="roadKm" column="road_km"/>
+        <result property="roadLevel" column="road_level"/>
+        <result property="roadTimeUp" column="road_time_up"/>
+        <result property="roadTimeDown" column="road_time_down"/>
+        <result property="roadSeq" column="road_seq"/>
+        <result property="roadX" column="road_x"/>
+        <result property="roadY" column="road_y"/>
+    </resultMap>
+
+    <select id="getHikingRoads" resultMap="RoadDTOMap">
+        SELECT coord_id, mt_id, road_id, road_km, road_level, road_time_up, road_time_down, road_seq, road_x, road_y
+        FROM ViewHikingRoad
+    </select>
+
+    <insert id="addCourse" parameterType="com.test.hike.dto.CourseDTO">
+        INSERT INTO Course
+        (course_id, mt_id, user_id, title, type, image, time, distance)
+        VALUES
+        (seqCourse.nextVal, #{mtId}, #{userId}, #{title}, #{type}, #{image}, #{time}, #{distance})
+    </insert>
+
+    <insert id="addCourseItem" parameterType="com.test.hike.dto.CourseItemDTO">
+        <selectKey keyProperty="courseId" resultType="int" order="BEFORE">
+            SELECT seqCourse.currVal FROM dual
+        </selectKey>
+        INSERT INTO CourseItem
+        (course_item_id, road_id, course_id, course_order)
+        VALUES (seqCourseItem.nextVal,
+        #{roadId},
+        #{courseId},
+        #{courseOrder})
+    </insert>
 </mapper>
