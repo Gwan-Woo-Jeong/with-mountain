@@ -26,13 +26,20 @@
         AND password = #{password}
     </select>
 
-	<select id="loadUser" parameterType="String" resultMap="userInfoDTOResultMap" resultType="com.test.hike.dto.UserInfoDTO">
+	<select id="loadUserByEmail" parameterType="String" resultMap="userInfoDTOResultMap" resultType="com.test.hike.dto.UserInfoDTO">
 		SELECT
 			*
 		FROM UserInfo
-		WHERE email = #{username}
+		WHERE email = #{email}
 	</select>
-    
+
+	<select id="loadUserByUserId" parameterType="int" resultMap="userInfoDTOResultMap" resultType="com.test.hike.dto.UserInfoDTO">
+		SELECT
+			*
+		FROM UserInfo
+		WHERE user_id = #{userId}
+	</select>
+
 	<!-- 이메일 중복 체크 -->
 	<select id="checkEmailExists" parameterType="string" resultType="int">
 	    SELECT CASE 
