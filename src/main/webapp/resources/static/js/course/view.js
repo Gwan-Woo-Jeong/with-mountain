@@ -254,7 +254,7 @@ $(document).ready(function () {
             contentType: 'application/json',
             data: JSON.stringify({
                 course: {
-                    userId: 1,
+                    userId: userInfo.userId,
                     courseId: null,
                     mtId: data.mtId,
                     title: $('.dialog-background .course-name-input').val(),

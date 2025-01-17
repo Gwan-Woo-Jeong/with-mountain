@@ -14,6 +14,7 @@
      * view.js에서 등산로 지점 정보 데이터를 사용하기 위한 사전 작업용 변수입니다.
      */
     const spotList =  ${spotListJson};
+    const userInfo = ${userInfo};
 </script>
 <meta name="_csrf" th:content="${_csrf.token}"/>
 <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
