@@ -79,7 +79,7 @@
 				spotEndPoint.push(new kakao.maps.LatLng(trailEndPoint[i].spotY, trailEndPoint[i].spotX));
 			}
 				
-			var imageSrc = 'resources/static/images/spot-startend.svg';
+			var imageSrc = 'resources/static/images/spot-start.svg';
 				
 			for (var i = 0; i < spotEndPoint.length; i++) {
 				

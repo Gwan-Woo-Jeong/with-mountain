@@ -4,246 +4,720 @@
  * 일부 설정은 common.js를 참조해야 합니다.
  * @author Kim Young-jin, Jeong Gwan-woo
  */
-
 import {initMap} from './common.js';
+import Graph from './Graph.js';
+import MapStack from './MapStack.js';
+import {captureHTML} from "./capture.js";
 
 const MIN_ZOOM_LEVEL = 7;
 const MAX_ZOOM_LEVEL = 1;
 
-/**
- * Kakao 지도 API의 원활한 이용을 위해, 화면 로드가 전부 완료된 후 실행되도록 한 method입니다.
- */
-$(document).ready(async function () {
-    //const data = await loadJSON(); // For Test
+const LEVELS = {
+    1: 'EASY',
+    2: 'MEDIUM',
+    3: 'HARD'
+};
 
-    //console.log(data);
+const COLORS = {
+    EASY: {
+        LIGHT: '#34C75950',
+        MIDDLE: '#34C759B3',
+        DARK: '#34C759'
+    },
+    MEDIUM: {
+        LIGHT: '#FFC10750',
+        MIDDLE: '#FFC107B3',
+        DARK: '#FFC107'
+    },
+    HARD: {
+        LIGHT: '#FF373750',
+        MIDDLE: '#FF3737B3',
+        DARK: '#FF3737'
+    }
+};
 
-    const queryString = window.location.search;
-    const urlParams = new URLSearchParams(queryString);
-    const mtY = urlParams.get('mtY');
-    const mtX = urlParams.get('mtX');
+const STROKE_WEIGHTS = {
+    DEFAULT: 4,
+    THICK: 5
+}
 
-    /**
-     * Kakao 지도 API 사용을 위한 변수입니다.
-     * 1. 그려질 지도의 크기와 설정을 사전 정의합니다.
-     * 자세한 설명은 Kakao 지도 API 공식 문서에서 확인하실 수 있습니다.
-     */
-    // 1. 그려질 지도의 크기와 설정을 사전 정의
-    const map = initMap(
-        '#view-map',
-        parseFloat(mtY),
-        parseFloat(mtX),
-        MIN_ZOOM_LEVEL,
-        MAX_ZOOM_LEVEL);
+const SPOT_TYPES = {
+    '시종점': {imgSrc: '/hike/resources/static/images/spot-start.svg', imgSize: [16, 16]},
+    '분기점': {imgSrc: '/hike/resources/static/images/point.svg', imgSize: [5, 5]}
+};
 
+const SELECT_MARKERS = {
+    'EASY': {imgSrc: '/hike/resources/static/images/point-green.svg', imgSize: [20, 20]},
+    'MEDIUM': {imgSrc: '/hike/resources/static/images/point-yellow.svg', imgSize: [20, 20]},
+    'HARD': {imgSrc: '/hike/resources/static/images/point-red.svg', imgSize: [20, 20]},
+}
 
-    // 2. 프로그램으로 JSON 데이터 가져오기 - Controller에서 서버의 데이터를 직접 가져오는 것으로 대체
-    // async function loadJSON() {
-    //     try {
-    //         const jsonPath = new URL('resources/static/data/mountain.json', 'http://localhost:8090/hike/');
-    //         const response = await fetch(jsonPath); // JSON 파일 경로
-    //         if (!response.ok) {
-    //             throw new Error('JSON 불러오기 결과 실패');
-    //         }
-    //         return await response.json();
-    //     } catch (error) {
-    //         console.error('JSON: 불러오는 도중 실패', error);
-    //     }
-    // }
+const data = await loadJSON(); // For Test
+const queryString = window.location.search;
+const urlParams = new URLSearchParams(queryString);
+const mtY = urlParams.get('mtY');
+const mtX = urlParams.get('mtX');
+const roadList = data["roadList"];
 
-    // JSON형 데이터 data의 좌표값에 접근
-    console.log(data);
-    //console.log(data["roadList"].length); // = 등산로 구간, 296
-    //console.log(data["roadList"][0].coordList.length); // 구간 하나의 xy 좌표 수
-    //console.log(data["roadList"][0].coordList[0].roadY);
-    //console.log(data["roadList"][0].roadKm);
-    //console.log(spotListJson[0].spotId); // 지점 데이터의 spotId
-    //console.log(spotListJson);
+const SUMMARY_KEYS = {
+    COUNT: 'count',
+    DISTANCE: 'distance',
+    TIME: 'time'
+}
 
-    // 3-1. 지점(Marker) 그리기
-    let pointStartEnd = [];
-    let pointJunction = [];
+const SUMMARY_DEFAULT_VALUE = {
+    EASY: 0,
+    MEDIUM: 0,
+    HARD: 0
+}
 
-    /**
-     * 등산로 지점 데이터가 담긴 spotListJson 에서 지점 속성이 '시종점'인 지점과 '분기점'인 지점을 분리하고, 배열에 각각 담는 method 입니다.
-     * 시종점과 분기점을 Kakao 지도 API 상에서 각각 다른 이미지로 출력하기 위한 선행 작업입니다.
-     */
-    function dividePointsBySpotType() {
+const AUTO_MODE_TYPE = {
+    SHORTEST: 'SHORTEST',
+    FASTEST: 'FASTEST',
+    HARDEST: 'HARDEST',
+    EASIEST: 'EASIEST'
+}
 
-        for (var i = 0; i < spotListJson.length; i++) {
-            if (spotListJson[i].spotType == '시종점') {
-                pointStartEnd.push(new kakao.maps.LatLng(spotListJson[i].spotY, spotListJson[i].spotX));
-            } else if (spotListJson[i].spotType == '분기점') {
-                pointJunction.push(new kakao.maps.LatLng(spotListJson[i].spotY, spotListJson[i].spotX));
-            }
+const summary = {
+    count: {...SUMMARY_DEFAULT_VALUE},
+    distance: {...SUMMARY_DEFAULT_VALUE},
+    time: {...SUMMARY_DEFAULT_VALUE},
+};
+
+const autoMode = {
+    isActive: false,
+    isFinished: false,
+    type: AUTO_MODE_TYPE.SHORTEST
+}
+
+let isCapturing = false;
+
+const kakaoMap = initMap(
+    '#view-map',
+    parseFloat(mtY),
+    parseFloat(mtX),
+    MIN_ZOOM_LEVEL,
+    MAX_ZOOM_LEVEL);
+
+const graph = new Graph();
+const selects = new MapStack();
+const roads = new Map();
+
+drawRoads();
+drawSpotMarkers();
+
+// 메뉴 조작
+$(document).ready(function () {
+    $('#same').on('change', function () {
+        if ($(this).is(':checked')) {
+            handleModeChange(false);
         }
-    }
-    dividePointsBySpotType();
-    
-    // 3-2. 지점(시종점) 그리기
-    for (var i = 0; i < pointStartEnd.length; i++) {
-        var imgSrcSE = '/hike/resources/static/images/spot-startend.svg';
-        var imgSizeSE = new kakao.maps.Size(16, 16);
-        var markerImg = new kakao.maps.MarkerImage(imgSrcSE, imgSizeSE);
-        var marker = new kakao.maps.Marker({
-            map: map,
-            position: pointStartEnd[i],
-            image: markerImg
-        });
-    }
-    // 3-3. 지점(분기점) 그리기
-    for (var i = 0; i < pointJunction.length; i++) {
-        var imgSrcJ = '/hike/resources/static/images/point.svg';
-        var imgSizeJ = new kakao.maps.Size(8, 8);
-        var markerImg = new kakao.maps.MarkerImage(imgSrcJ, imgSizeJ);
-        var marker = new kakao.maps.Marker({
-            map: map,
-            position: pointJunction[i],
-            image: markerImg
-        });
-    }
+    });
 
-    // 4. 구간 그리기
-    let lineNo = 27058; // data의 북한산 구간 번호가 27058부터 시작
-    let lines = 0; // 선택된 구간의 개수
-    let hikeTime = 0; // 구간 소요 시간: (상행시간 + 하행시간) / 2
-    let hikeDistance = 0; // 구간 거리
-    let hikeLevel = []; // 구간 난이도
-    let road = [];
-
-    for (var i = 0; i < data["roadList"].length; i++) { // 296
-        road.push([]); // 2차원 배열을 만듦
-        for (var j = 0; j < data["roadList"][i].coordList.length; j++) { // 구간별 길이
-            road[i].push(new kakao.maps.LatLng(data["roadList"][i].coordList[j].roadY, data["roadList"][i].coordList[j].roadX));
+    $('#diff').on('change', function () {
+        if ($(this).is(':checked')) {
+            handleModeChange(true);
         }
-        var polyline = new kakao.maps.Polyline({
-            map: map,
-            path: road[i],
-            strokeWeight: 5,
-            strokeColor: '#ADB5BD',
-            strokeOpacity: 1,
-            strokeStyle: 'solid',
-            lineNum: lineNo,
-            hikeDistance: hikeDistance,
-            hikeTime: hikeTime,
-            hikeLevel: hikeLevel
-        });
+    });
 
-        polyline.setMap(map);
+    $('input[name="type"]').on('change', function () {
+        const key = $(this).val().toUpperCase();
+        autoMode.type = AUTO_MODE_TYPE[key];
 
-        let isClicked = false;
+        if (selects.size() >= 2) {
+            findAutoTypeCourse();
+        }
+    });
+});
 
-        // 5-1. 마우스 이벤트 리스너
-        /**
-         * Kakao 지도 API에 그려진 polyline에 마우스를 올리면 polyline의 색이 변하는 method 입니다.
-         * 마우스가 올라간 선을 강조하는 느낌을 주도록 했습니다.
-         */
-        kakao.maps.event.addListener(polyline, 'mouseover', function(mouseEvent) {
-            if (!isClicked) {
-                this.setOptions({
-                    'strokeColor': '#343A40'
-                });
-            }
-
-        });
-
-        /**
-         * KaKao 지도 API에 그려진 polyline에서 마우스를 치우면 polyline의 색이 변하는 method 입니다.
-         * 강조선을 해제하는 느낌으로 구현했습니다.
-         */
-        kakao.maps.event.addListener(polyline, 'mouseout', function(mouseEvent) {
-            if (!isClicked) {
-                this.setOptions({
-                    'strokeColor': '#ADB5BD'
-                });
-            }
-        });
-
-        /**
-         * Kakao 지도 API에 그려진 polyline을 클릭하면 발생하는 이벤트 내용이 적힌 method 입니다.
-         * polyline을 클릭해서 선택 혹은 선택 해제 하는 효과처럼 보이도록 의도했습니다.
-         * polyline을 클릭하면 해당하는 등산로 구간의 정보(선택된 구간 수, 등산 거리, 등산 시간)를 출력할 수 있도록 구현했습니다.
-         * polyline은 여러 개 선택할 수 있습니다.
-         */
-        // 5-2. 마우스 이벤트 리스너
-        kakao.maps.event.addListener(polyline, 'click', (function(lineNo, i) {
-            return function(mouseEvent) {
-                if (isClicked) {
-                    this.setOptions({
-                        'strokeColor': '#343A40' // 클릭 후 다시 원래 색으로 변경
-                    });
-
-                    console.log('구간 선택이 해제되었습니다: ' + lineNo + '번 구간');
-
-                    lines--;
-                    console.log('현재 선택된 구간 수는 ' + lines + ' 개 입니다.');
-
-                    hikeDistance -= parseFloat(data["roadList"][i].roadKm.toFixed(2));
-                    if (lines == 0) { hikeDistance = 0; }
-                    console.log('구간 예상 거리: ' + hikeDistance + ' km');
-
-                    hikeTime -= ((data["roadList"][i].roadTimeUp + data["roadList"][i].roadTimeDown) / 2);
-                    console.log('구간 예상 소요시간: ' + hikeTime + ' 분');
-                    roadData();
-                } else {
-                    this.setOptions({
-                        'strokeColor': 'forestgreen', // 클릭하면 색 변경
-                        'hikeDistance': data["roadList"][i].roadKm,
-                        'hikeTime': (data["roadList"][i].roadTimeUp + data["roadList"][i].roadTimeDown) / 2
-                    });
-                    console.log('구간이 선택되었습니다: ' + lineNo + '번 구간');
-
-                    lines++;
-                    console.log('현재 선택된 구간 수는 ' + lines + ' 개 입니다.');
-
-                    //소수점 2자리를 기준으로 반올림해서 문자열로 반환된 거리값을 parseFloat를 이용해 숫자로 변환
-                    hikeDistance += parseFloat(data["roadList"][i].roadKm.toFixed(2));
-                    console.log('구간 예상 거리: ' + hikeDistance + ' km');
-
-                    hikeTime += ((data["roadList"][i].roadTimeUp + data["roadList"][i].roadTimeDown) / 2);
-                    console.log('구간 예상 소요시간: ' + hikeTime + ' 분');
-                    roadData();
-                }
-                isClicked = !isClicked; // 토글
-            };
-        })(lineNo, i));  // i, polyline의 lineNo를 전달
-        lineNo++;
+function handleModeChange(isAutoSelected) {
+    if (!selects.isEmpty() && !confirmResetCourse()) {
+        const oppositeRadio = isAutoSelected ? $('#same') : $('#diff');
+        oppositeRadio.prop('checked', true);
+        return;
     }
+    resetCourse();
+    $('.mode-menu').toggleClass('disabled', !isAutoSelected);
+    autoMode.isActive = isAutoSelected;
+}
 
-    // 5-3. 함수
-    /**
-     * ajax를 이용해 사용자가 선택한 등산로 구간 데이터를 등산로 커스텀 jsp 페이지로 전송하는 method 입니다.
-     */
-    function roadData() {
+// 코스 캡처
+$(document).ready(function () {
+    const saveButton = $('.save');
+    const captureButton = $('.capturing');
+    const captureArea = $('#capture-area');
+    let isSelecting = false;
+    let startX, startY, imageData;
 
-        const token = $("meta[name='_csrf']").attr("content")
-        const header = $("meta[name='_csrf_header']").attr("content");
+    $(document).on('mousedown', function (e) {
+        if (!isCapturing) return;
+        if (e.button !== 0) return;
+
+        kakaoMap.setDraggable(false);
+
+        isSelecting = true;
+        startX = e.pageX - 20;
+        startY = e.pageY - 80;
+
+        captureArea.css({
+            left: startX + 'px',
+            top: startY + 'px',
+            width: '0px',
+            height: '0px',
+            display: 'block',
+        });
+    });
+
+    $(document).on('mousemove', function (e) {
+        if (!isCapturing) return;
+        if (!isSelecting) return;
+
+        let currentX = e.pageX - 20;
+        let currentY = e.pageY - 80;
+
+        let width = Math.abs(currentX - startX);
+        let height = Math.abs(currentY - startY);
+
+        captureArea.css({
+            width: width + 'px',
+            height: height + 'px',
+            left: (currentX > startX ? startX : currentX) + 'px',
+            top: (currentY > startY ? startY : currentY) + 'px',
+        });
+    });
+
+
+    $(document).on('mouseup', async function () {
+        if (!isCapturing) return;
+        if (!isSelecting) return;
+        isSelecting = false;
+
+        const rect = captureArea[0].getBoundingClientRect();
+
+        const option = {
+            x: rect.left + window.scrollX,
+            y: rect.top + window.scrollY,
+            width: rect.width,
+            height: rect.height,
+            scale: 2,
+            allowTaint: false,
+            logging: false,
+            proxy: path + '/html2canvas/proxy'
+        };
+
+        captureArea.css('display', 'none');
+        imageData = await captureHTML(document.body, option);
+        isCapturing = false;
+        saveButton.show();
+        captureButton.hide();
+        kakaoMap.setDraggable(true);
+
+        $('.dialog-background').addClass('show');
+        $('.dialog-background .image').prop('src', imageData);
+    });
+
+    saveButton.on('click', function (e) {
+        if (!confirm('코스를 캡처한 후 저장합니다.\n코스가 잘 보이도록 해당 영역을 드래그하여 캡처해주세요!')) {
+            return;
+        }
+        isCapturing = true;
+        saveButton.hide();
+        captureButton.show();
+    });
+
+    $('.dialog-background .course-name-input').on('input', function (e) {
+        const courseName = $(this).val();
+        $('.dialog-background .confirm').prop('disabled', courseName.length === 0);
+    })
+
+    $('.dialog-background .cancel').on('click', function (e) {
+        e.preventDefault();
+        $('.dialog-background').removeClass('show');
+    });
+
+    $('.dialog-background .confirm').on('click', function (e) {
+        e.preventDefault();
+        const courseItems = []
+
+        selects.forEach((select, _, index) => {
+            courseItems.push({
+                courseItemId: null,
+                roadId: select.roadId,
+                courseId: null,
+                courseOrder: index + 1,
+            })
+        })
 
         $.ajax({
-            url: 'view',
             type: 'POST',
-            data: {
-                lines: lines,
-                hikeTime: hikeTime,
-                hikeDistance: hikeDistance
+            url: path + '/course/add',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                course: {
+                    userId: userInfo.userId,
+                    courseId: null,
+                    mtId: data.mtId,
+                    title: $('.dialog-background .course-name-input').val(),
+                    type: 'CUSTOM',
+                    image: imageData,
+                    time: summary.time.EASY + summary.time.MEDIUM + summary.time.HARD,
+                    distance: truncDecimal(summary.distance.EASY + summary.distance.MEDIUM + summary.distance.HARD)
+                },
+                courseItems
+            }),
+            success: function () {
+                alert('커스텀 코스가 성공적으로 저장되었습니다!')
+                $('.dialog-background').removeClass('show');
             },
-            // ajax용 CSRF 토큰
-            //beforeSend : function(xhr) {
-            //    xhr.setRequestHeader(header, token);
-            //},
-            success: function (response) {
-                console.log('roadData 전송 성공');
-                $('#hike-lines span').text(lines);
-                    $('#hike-distance span').text(hikeDistance);
-                $('#hike-time span').text(hikeTime);
+            error: function (xhr, textStatus, errorThrown) {
+                console.error(`POST 실패\n
+                Status: ${xhr.status}\n
+                Error: ${xhr.statusText}\n
+                Response: ${xhr.responseText}\n
+                Text Status: ${textStatus}\n
+                Error: ${errorThrown}`);
             },
-            error: function (error) {
-                console.error('roadData 전송 실패', error);
+        });
+    });
+});
+
+// 코스 생성
+async function loadJSON() {
+    try {
+        const jsonPath = new URL('resources/static/data/mountain.json', 'http://localhost:8090/hike/');
+        const response = await fetch(jsonPath); // JSON 파일 경로
+        if (!response.ok) {
+            throw new Error('JSON 불러오기 결과 실패');
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('JSON: 불러오는 도중 실패', error);
+    }
+}
+
+function drawMarker(markerConfig, position) {
+    const markerImg = new kakao.maps.MarkerImage(markerConfig.imgSrc, new kakao.maps.Size((markerConfig.imgSize)[0], (markerConfig.imgSize)[1]));
+    return new kakao.maps.Marker({
+        map: kakaoMap,
+        position,
+        image: markerImg
+    });
+}
+
+function drawCustomOverlay(position) {
+    const content = `<div class ="course-number">${selects.size()}</div>`;
+    const xAnchor = 0.426;
+    const yAnchor = 1.35;
+    return new kakao.maps.CustomOverlay({position, content, xAnchor, yAnchor});
+}
+
+function drawSpotMarkers() {
+    spotList.forEach(spot => {
+        const spotType = spot.spotType;
+        const point = new kakao.maps.LatLng(spot.spotY, spot.spotX);
+        const markerConfig = SPOT_TYPES[spotType];
+        if (markerConfig) {
+            drawMarker(markerConfig, point);
+        }
+    });
+}
+
+function drawRoads() {
+    for (let i = 0; i < roadList.length; i++) {
+        const road = roadList[i];
+        const level = getLevel(road);
+        const time = (road.roadTimeUp + road.roadTimeDown) / 2;
+        const path = [];
+        let startNode;
+        let endNode;
+
+        road.coordList.forEach((({coordId, roadX, roadY}, idx, arr) => {
+            if (idx === 0) {
+                startNode = graph.addNode(coordId, roadX, roadY)
+            }
+            if (idx === arr.length - 1) {
+                endNode = graph.addNode(coordId, roadX, roadY);
+                graph.addEdge(startNode, endNode, road.roadKm, road.roadId, level, time);
+            }
+            path.push(new kakao.maps.LatLng(roadY, roadX));
+        }));
+
+        const line = new kakao.maps.Polyline({
+            map: kakaoMap,
+            path,
+            strokeWeight: STROKE_WEIGHTS.DEFAULT,
+            strokeColor: getColor(level, "LIGHT"),
+            strokeOpacity: 1,
+            strokeStyle: 'solid',
+        });
+
+        road.line = line;
+        road.level = level;
+        road.time = time;
+        road.isClicked = false;
+        roads.set(road.roadId, road);
+
+        line.setMap(kakaoMap);
+
+        line.addListener('mouseover', () => {
+            if (autoMode.isActive && selects.size() > 1 || isCapturing) {
+                return;
+            }
+
+            if (road.isClicked) {
+                hideSelectRoads(road, selects);
+                setStrokeColor(line, getColor(level, "LIGHT"));
+            } else {
+                setStrokeColor(line, getColor(level, "MIDDLE"));
+            }
+        });
+
+        line.addListener('mouseout', () => {
+            if (isCapturing) return;
+            if (road.isClicked) {
+                setStrokeColor(line, getColor(level, "LIGHT"));
+                showSelectRoads();
+            } else {
+                if (autoMode.isFinished) {
+                    return;
+                }
+                setStrokeColor(line, getColor(level, "LIGHT"));
+            }
+        });
+
+        line.addListener('click', () => {
+            if (isCapturing) return;
+            if (autoMode.isActive) {
+                handleAutoRoadClick(road);
+            } else {
+                handleManualRoadClick(road);
             }
         });
     }
-    $('.switch-mode').click(() => {
-        alert('추후 업데이트 예정입니다.');
+}
+
+function handleAutoRoadClick(road) {
+    if (autoMode.isFinished) {
+        if (confirmResetCourse()) {
+            resetCourse();
+        }
+        return;
+    }
+
+    const leafNodeId = graph.findLeafNodeIncluded(road.roadId);
+    if (road.isClicked && selects.size() === 1) {
+        unselectRoad(road);
+        road.isClicked = false;
+        return;
+    }
+
+    if (!leafNodeId) {
+        alert("시종점과 연결된 등산로 2개를 선택해주세요!");
+        return;
+    }
+
+    road.isClicked = true;
+    const fromNodeId = graph.getOppositeNode(road.roadId, leafNodeId);
+    selectRoad(road, fromNodeId, leafNodeId);
+
+    if (selects.size() === 2) {
+        findAutoTypeCourse();
+        showSummaries();
+    }
+}
+
+function handleManualRoadClick(road) {
+    if (road.isClicked) {
+        unselectRoad(road);
+        toggleDisableSaveButton(true);
+    } else {
+        const leafNodeId = graph.findLeafNodeIncluded(road.roadId);
+        const fromNodeId = handleClick(road.roadId);
+
+        if (fromNodeId) {
+            selectRoad(road, fromNodeId, leafNodeId);
+        }
+
+        if (selects.size() > 1) {
+            const last = selects.peek();
+            const first = selects.first();
+            if (last.leafNodeId && first.leafNodeId) {
+                toggleDisableSaveButton(false);
+            }
+        }
+    }
+
+    road.isClicked = !road.isClicked;
+    showSummaries();
+}
+
+function toggleDisableSaveButton(disabled) {
+    const saveButton = $('.save');
+    if (saveButton.prop('disabled') !== disabled) {
+        saveButton.prop('disabled', disabled);
+    }
+}
+
+function confirmResetCourse() {
+    return confirm("선택 경로가 초기화됩니다. 진행하시겠습니까?");
+}
+
+function resetCourse() {
+    if (!selects.isEmpty()) {
+        deleteSelectRoads(selects.first());
+    }
+    resetSummary();
+    showSummaries();
+    if (autoMode.isActive) {
+        autoMode.isFinished = false;
+    }
+
+    toggleDisableSaveButton(true);
+}
+
+function unselectRoad(road) {
+    deleteSelectRoads(road);
+    setStrokeColor(road.line, getColor(road.level, "MIDDLE"));
+}
+
+function findAutoTypeCourse() {
+    const current = selects.peek();
+    const previous = selects.first();
+    let roadIds;
+
+    if (autoMode.type === AUTO_MODE_TYPE.SHORTEST) {
+        roadIds = graph.findShortestPath(previous.leafNodeId, current.leafNodeId);
+    } else if (autoMode.type === AUTO_MODE_TYPE.FASTEST) {
+        roadIds = graph.findFastestPath(previous.leafNodeId, current.leafNodeId);
+    } else if (autoMode.type === AUTO_MODE_TYPE.HARDEST) {
+        roadIds = graph.findHardestPath(previous.leafNodeId, current.leafNodeId);
+    } else if (autoMode.type === AUTO_MODE_TYPE.EASIEST) {
+        roadIds = graph.findEasiestPath(previous.leafNodeId, current.leafNodeId);
+    }
+
+    resetCourse();
+    roadIds.forEach(roadId => {
+        const fromNodeId = handleClick(roadId);
+        const road = roads.get(roadId);
+        road.isClicked = true;
+        selectRoad(road, fromNodeId);
     });
-    
-});
+
+    showSummaries();
+    autoMode.isFinished = true;
+    toggleDisableSaveButton(false);
+}
+
+function selectRoad(road, fromNodeId, leafNodeId = null) {
+    addSelectRoad(road, fromNodeId, leafNodeId);
+    showSelectRoad(road);
+}
+
+function handleClick(roadId) {
+    let fromNodeId;
+    if (selects.isEmpty()) {
+        const leafNode = graph.findLeafNodeIncluded(roadId);
+        if (!leafNode) {
+            alert("시종점과 연결된 등산로부터 선택해주세요!");
+            return;
+        }
+        fromNodeId = graph.getOppositeNode(roadId, leafNode);
+    } else {
+        const oppositeNodeId = graph.getOppositeNode(roadId, selects.peek().fromNode.id);
+        if (!oppositeNodeId) {
+            alert("이전 등산로과 연결된 등산로를 선택해주세요!");
+            return;
+        }
+        fromNodeId = oppositeNodeId;
+    }
+    return fromNodeId;
+}
+
+function addSelectRoad(road, fromNodeId, leafNodeId) {
+    if (fromNodeId) {
+        const [x, y] = graph.findCoordsById(fromNodeId);
+        road.fromNode = {id: fromNodeId, x, y};
+    }
+
+    if (leafNodeId) {
+        road.leafNodeId = leafNodeId;
+    }
+
+    delete road.coordList;
+    selects.push(road.roadId, road);
+    increaseSummary(road);
+}
+
+function deleteSelectRoads(road) {
+    processAfterIndex(road, (key, value) => {
+        decreaseSummary(value);
+        hideSelectRoad(value);
+
+        value.isClicked = false;
+        if (value.marker) {
+            delete value.marker;
+            delete value.customOverlay;
+        }
+
+        selects.deleteByKey(key);
+    });
+}
+
+function hideSelectRoads(road) {
+    processAfterIndex(road, (_, value) => {
+        hideSelectRoad(value);
+    });
+}
+
+function hideSelectRoad(road) {
+    road.marker.setMap(null);
+    road.customOverlay.setMap(null);
+    setStrokeColor(road.line, getColor(road.level, "LIGHT"));
+    setStrokeWeight(road.line, STROKE_WEIGHTS.DEFAULT);
+}
+
+function showSelectRoads() {
+    selects.forEach((value) => showSelectRoad(value));
+}
+
+function showSelectRoad(road) {
+    if (!road.marker) {
+        const markerConfig = SELECT_MARKERS[LEVELS[road.level]];
+        const position = new kakao.maps.LatLng(road.fromNode.y, road.fromNode.x);
+        road.marker = drawMarker(markerConfig, position);
+        road.customOverlay = drawCustomOverlay(position);
+    }
+    road.marker.setMap(kakaoMap);
+    road.customOverlay.setMap(kakaoMap);
+
+    setStrokeColor(road.line, getColor(road.level, "DARK"));
+    setStrokeWeight(road.line, STROKE_WEIGHTS.THICK);
+}
+
+function processAfterIndex(road, callback) {
+    const keys = Array.from(selects.keys());
+    const index = keys.indexOf(road.roadId);
+    if (index === -1) return;
+    keys.slice(index).forEach(key => {
+        const value = selects.findValueByKey(key);
+        callback(key, value);
+    });
+}
+
+function increaseSummary({roadKm, time, level}) {
+    updateSummary({roadKm, time, level}, 1);
+}
+
+function decreaseSummary({roadKm, time, level}) {
+    updateSummary({roadKm, time, level}, -1);
+}
+
+function resetSummary() {
+    summary.count = {...SUMMARY_DEFAULT_VALUE};
+    summary.time = {...SUMMARY_DEFAULT_VALUE};
+    summary.distance = {...SUMMARY_DEFAULT_VALUE};
+}
+
+function updateSummary({roadKm, time, level}, plusOrMinus) {
+    summary.count[LEVELS[level]] += plusOrMinus;
+    summary.distance[LEVELS[level]] = truncDecimal(summary.distance[LEVELS[level]] + plusOrMinus * roadKm);
+    summary.time[LEVELS[level]] += plusOrMinus * time;
+}
+
+function showSummaries() {
+    showSummary(SUMMARY_KEYS.COUNT, summary.count);
+    showSummary(SUMMARY_KEYS.DISTANCE, summary.distance);
+    for (const key in summary.time) {
+        showTimeSummary(key, summary.time[key]);
+    }
+    showTotalTimeSummary();
+}
+
+function showSummary(type, data) {
+    let total = 0;
+
+    for (const key in data) {
+        const value = data[key];
+        const selector = `#${type} .${key.toLowerCase()}`;
+
+        updateDisplay(selector, value > 0);
+        updateText(selector, value);
+
+        total += value;
+    }
+
+    const totalValue = type === SUMMARY_KEYS.DISTANCE ? truncDecimal(total) : total;
+    updateText(`#${type} .total`, totalValue);
+}
+
+function showTimeSummary(key, value) {
+    const {hour, minute} = minuteToHourMinute(value);
+    const selector = `#time .${key.toLowerCase()}`;
+
+    updateDisplay(selector, value > 0);
+    updateDisplay(`${selector} .hour`, hour);
+    updateText(`${selector} .hour`, hour);
+    updateText(`${selector} .minute`, roundMinuteIfHour(hour, minute));
+}
+
+function showTotalTimeSummary() {
+    const {EASY, MEDIUM, HARD} = summary.time;
+    const totalMinutes = EASY + MEDIUM + HARD;
+    const {hour, minute} = minuteToHourMinute(totalMinutes);
+    const selector = `#time .total`;
+
+    updateDisplay(`${selector} .hour`, hour);
+    updateText(`${selector} .hour`, hour);
+    updateText(`${selector} .minute`, roundMinuteIfHour(hour, minute));
+}
+
+function minuteToHourMinute(min) {
+    const hour = Math.floor(min / 60);
+    const minute = min % 60;
+    return {hour, minute};
+}
+
+function roundMinuteIfHour(hour, minute) {
+    return hour && minute ? Math.round(minute) : minute;
+}
+
+function updateDisplay(selector, isVisible) {
+    if (isVisible) {
+        $(selector).show();
+    } else {
+        $(selector).hide();
+    }
+}
+
+function updateText(selector, value) {
+    $(`${selector} .value`).text(value);
+}
+
+function setStrokeColor(line, color) {
+    line.setOptions({'strokeColor': color})
+}
+
+function setStrokeWeight(line, value) {
+    line.setOptions({'strokeWeight': value})
+}
+
+function truncDecimal(num) {
+    return parseFloat(num.toFixed(2));
+}
+
+function getLevel({roadTimeUp, roadTimeDown, roadKm}) {
+    const ratio = roadTimeUp / (roadTimeDown || 1);
+    const measure = Math.pow(ratio, 3) * (roadKm / 2.5);
+
+    if (measure < 1) {
+        return 1;
+    } else if (measure < 2) {
+        return 2;
+    } else {
+        return 3;
+    }
+}
+
+function getColor(level, opacity) {
+    return COLORS[LEVELS[level]][opacity];
+}

@@ -2,13 +2,8 @@ package com.test.hike.mapper;
 
 import java.util.List;
 
-import com.test.hike.dto.CustomCourseDTO;
-import com.test.hike.dto.MountainDTO;
+import com.test.hike.dto.*;
 import org.apache.ibatis.annotations.Mapper;
-
-import com.test.hike.dto.HikingRoadDTO;
-import com.test.hike.dto.HikingRoadSpotDTO;
-import org.apache.ibatis.annotations.Param;
 
 /**
  * 커스텀 등산로 기능과 관련된 Interface Mapper 파일입니다.
@@ -26,5 +21,7 @@ public interface MapCustomMapper {
 
 	com.test.hike.dto.custom.MountainDTO getAllRoadsWithCoordsByMtId(int mtId);
 
-	List<CustomCourseDTO> addCourseData();
+	void addCourse(CourseDTO course);
+
+	void addCourseItem(CourseItemDTO courseItems);
 }

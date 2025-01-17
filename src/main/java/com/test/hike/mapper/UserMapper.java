@@ -56,12 +56,14 @@ public interface UserMapper {
 
     /**
      * 사용자명으로 사용자 정보를 조회하는 method입니다.
-     * @param username 조회할 사용자명
+     * @param email 조회할 사용자명
      * @return 조회된 사용자 정보, 실패 시 null
      */
     // 로그인 유저 정보 가져오기
-    UserInfoDTO loadUser(String username);
-    
+    UserInfoDTO loadUserByEmail(String email);
+
+    UserInfoDTO loadUserByUserId(int userId);
+
     /**
      * 사용자의 등산 환경 설정 정보를 수정하는 method입니다.
      * @param user 수정할 사용자 정보

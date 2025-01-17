@@ -2,12 +2,9 @@ package com.test.hike.dao;
 
 import java.util.List;
 
-import com.test.hike.dto.CustomCourseDTO;
-import com.test.hike.dto.MountainDTO;
+import com.test.hike.dto.*;
 import org.springframework.stereotype.Repository;
 
-import com.test.hike.dto.HikingRoadDTO;
-import com.test.hike.dto.HikingRoadSpotDTO;
 import com.test.hike.mapper.MapCustomMapper;
 
 import lombok.RequiredArgsConstructor;
@@ -56,11 +53,15 @@ public class MapCustomDAO {
 		return mapper.getAllRoadsWithCoordsByMtId(mtId);
 	}
 
+	public void addCourse(CourseDTO course) {
+		mapper.addCourse(course);
+	}
+
 	/**
 	 * 사용자가 선택한 커스텀 등산로 데이터를 사용자 DB 테이블에 삽입하기 위한 method 입니다.
 	 * @return mapper 파일의 addCourseData()를 호출합니다.
 	 */
-	public List<CustomCourseDTO> addCourseData() {
-		return mapper.addCourseData();
-	}
+	public void addCourseItem(CourseItemDTO courseItem) {
+        mapper.addCourseItem(courseItem);
+    }
 }
