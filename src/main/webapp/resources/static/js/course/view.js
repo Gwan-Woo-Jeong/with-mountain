@@ -8,49 +8,17 @@ import {initMap} from './common.js';
 import Graph from './Graph.js';
 import MapStack from './MapStack.js';
 import {captureHTML} from "./capture.js";
-
-const MIN_ZOOM_LEVEL = 7;
-const MAX_ZOOM_LEVEL = 1;
-
-const LEVELS = {
-    1: 'EASY',
-    2: 'MEDIUM',
-    3: 'HARD'
-};
-
-const COLORS = {
-    EASY: {
-        LIGHT: '#34C75950',
-        MIDDLE: '#34C759B3',
-        DARK: '#34C759'
-    },
-    MEDIUM: {
-        LIGHT: '#FFC10750',
-        MIDDLE: '#FFC107B3',
-        DARK: '#FFC107'
-    },
-    HARD: {
-        LIGHT: '#FF373750',
-        MIDDLE: '#FF3737B3',
-        DARK: '#FF3737'
-    }
-};
-
-const STROKE_WEIGHTS = {
-    DEFAULT: 4,
-    THICK: 5
-}
-
-const SPOT_TYPES = {
-    '시종점': {imgSrc: '/hike/resources/static/images/spot-start.svg', imgSize: [16, 16]},
-    '분기점': {imgSrc: '/hike/resources/static/images/point.svg', imgSize: [5, 5]}
-};
-
-const SELECT_MARKERS = {
-    'EASY': {imgSrc: '/hike/resources/static/images/point-green.svg', imgSize: [20, 20]},
-    'MEDIUM': {imgSrc: '/hike/resources/static/images/point-yellow.svg', imgSize: [20, 20]},
-    'HARD': {imgSrc: '/hike/resources/static/images/point-red.svg', imgSize: [20, 20]},
-}
+import {AUTO_MODE_TYPE, MESSAGES, OPACITIES, STROKE_WEIGHTS, SUMMARY_DEFAULT_VALUE} from "./constants.js";
+import {decreaseSummary, increaseSummary, resetSummary, showSummaries, toggleDisableSaveButton} from "./custom/menu.js";
+import {confirmResetCourse, getColor, getLevel, loadJSON, processAfterIndex, truncDecimal} from "./custom/utils.js";
+import {
+    drawSpotMarkers,
+    hideSelectRoad,
+    hideSelectRoads,
+    setStrokeColor,
+    showSelectRoad,
+    showSelectRoads
+} from "./custom/mapUtils.js";
 
 const data = await loadJSON(); // For Test
 const queryString = window.location.search;
@@ -59,90 +27,37 @@ const mtY = urlParams.get('mtY');
 const mtX = urlParams.get('mtX');
 const roadList = data["roadList"];
 
-const SUMMARY_KEYS = {
-    COUNT: 'count',
-    DISTANCE: 'distance',
-    TIME: 'time'
+const appState = {
+    summary: {
+        count: {...SUMMARY_DEFAULT_VALUE},
+        distance: {...SUMMARY_DEFAULT_VALUE},
+        time: {...SUMMARY_DEFAULT_VALUE},
+    },
+    autoMode: {
+        isActive: false,
+        isFinished: false,
+        type: AUTO_MODE_TYPE.SHORTEST
+    },
+    isCapturing: false
 }
-
-const SUMMARY_DEFAULT_VALUE = {
-    EASY: 0,
-    MEDIUM: 0,
-    HARD: 0
-}
-
-const AUTO_MODE_TYPE = {
-    SHORTEST: 'SHORTEST',
-    FASTEST: 'FASTEST',
-    HARDEST: 'HARDEST',
-    EASIEST: 'EASIEST'
-}
-
-const summary = {
-    count: {...SUMMARY_DEFAULT_VALUE},
-    distance: {...SUMMARY_DEFAULT_VALUE},
-    time: {...SUMMARY_DEFAULT_VALUE},
-};
-
-const autoMode = {
-    isActive: false,
-    isFinished: false,
-    type: AUTO_MODE_TYPE.SHORTEST
-}
-
-let isCapturing = false;
 
 const kakaoMap = initMap(
     '#view-map',
     parseFloat(mtY),
     parseFloat(mtX),
-    MIN_ZOOM_LEVEL,
-    MAX_ZOOM_LEVEL);
+    7,
+    1);
 
 const graph = new Graph();
 const selects = new MapStack();
 const roads = new Map();
 
-drawRoads();
-drawSpotMarkers();
-
-// 메뉴 조작
 $(document).ready(function () {
-    $('#same').on('change', function () {
-        if ($(this).is(':checked')) {
-            handleModeChange(false);
-        }
-    });
+    // 코스 그리기
+    drawRoads();
+    drawSpotMarkers(spotList, kakaoMap);
 
-    $('#diff').on('change', function () {
-        if ($(this).is(':checked')) {
-            handleModeChange(true);
-        }
-    });
-
-    $('input[name="type"]').on('change', function () {
-        const key = $(this).val().toUpperCase();
-        autoMode.type = AUTO_MODE_TYPE[key];
-
-        if (selects.size() >= 2) {
-            findAutoTypeCourse();
-        }
-    });
-});
-
-function handleModeChange(isAutoSelected) {
-    if (!selects.isEmpty() && !confirmResetCourse()) {
-        const oppositeRadio = isAutoSelected ? $('#same') : $('#diff');
-        oppositeRadio.prop('checked', true);
-        return;
-    }
-    resetCourse();
-    $('.mode-menu').toggleClass('disabled', !isAutoSelected);
-    autoMode.isActive = isAutoSelected;
-}
-
-// 코스 캡처
-$(document).ready(function () {
+    // 코스 캡처
     const saveButton = $('.save');
     const captureButton = $('.capturing');
     const captureArea = $('#capture-area');
@@ -150,11 +65,10 @@ $(document).ready(function () {
     let startX, startY, imageData;
 
     $(document).on('mousedown', function (e) {
-        if (!isCapturing) return;
+        if (!appState.isCapturing) return;
         if (e.button !== 0) return;
 
         kakaoMap.setDraggable(false);
-
         isSelecting = true;
         startX = e.pageX - 20;
         startY = e.pageY - 80;
@@ -169,7 +83,7 @@ $(document).ready(function () {
     });
 
     $(document).on('mousemove', function (e) {
-        if (!isCapturing) return;
+        if (!appState.isCapturing) return;
         if (!isSelecting) return;
 
         let currentX = e.pageX - 20;
@@ -186,9 +100,8 @@ $(document).ready(function () {
         });
     });
 
-
     $(document).on('mouseup', async function () {
-        if (!isCapturing) return;
+        if (!appState.isCapturing) return;
         if (!isSelecting) return;
         isSelecting = false;
 
@@ -207,7 +120,7 @@ $(document).ready(function () {
 
         captureArea.css('display', 'none');
         imageData = await captureHTML(document.body, option);
-        isCapturing = false;
+        appState.isCapturing = false;
         saveButton.show();
         captureButton.hide();
         kakaoMap.setDraggable(true);
@@ -216,16 +129,16 @@ $(document).ready(function () {
         $('.dialog-background .image').prop('src', imageData);
     });
 
-    saveButton.on('click', function (e) {
-        if (!confirm('코스를 캡처한 후 저장합니다.\n코스가 잘 보이도록 해당 영역을 드래그하여 캡처해주세요!')) {
+    saveButton.on('click', function () {
+        if (!confirm(MESSAGES.SAVE_COURSE)) {
             return;
         }
-        isCapturing = true;
+        appState.isCapturing = true;
         saveButton.hide();
         captureButton.show();
     });
 
-    $('.dialog-background .course-name-input').on('input', function (e) {
+    $('.dialog-background .course-name-input').on('input', function () {
         const courseName = $(this).val();
         $('.dialog-background .confirm').prop('disabled', courseName.length === 0);
     })
@@ -260,13 +173,13 @@ $(document).ready(function () {
                     title: $('.dialog-background .course-name-input').val(),
                     type: 'CUSTOM',
                     image: imageData,
-                    time: summary.time.EASY + summary.time.MEDIUM + summary.time.HARD,
-                    distance: truncDecimal(summary.distance.EASY + summary.distance.MEDIUM + summary.distance.HARD)
+                    time: appState.summary.time.EASY + appState.summary.time.MEDIUM + appState.summary.time.HARD,
+                    distance: truncDecimal(appState.summary.distance.EASY + appState.summary.distance.MEDIUM + appState.summary.distance.HARD)
                 },
                 courseItems
             }),
             success: function () {
-                alert('커스텀 코스가 성공적으로 저장되었습니다!')
+                alert(MESSAGES.SAVE_SUCCESS)
                 $('.dialog-background').removeClass('show');
             },
             error: function (xhr, textStatus, errorThrown) {
@@ -279,125 +192,98 @@ $(document).ready(function () {
             },
         });
     });
+
+    // 메뉴 조작
+    $('#same').on('change', function () {
+        if ($(this).is(':checked')) {
+            handleModeChange(false);
+        }
+    });
+
+    $('#diff').on('change', function () {
+        if ($(this).is(':checked')) {
+            handleModeChange(true);
+        }
+    });
+
+    $('input[name="type"]').on('change', function () {
+        const key = $(this).val().toUpperCase();
+        appState.autoMode.type = AUTO_MODE_TYPE[key];
+
+        if (selects.size() >= 2) {
+            findAutoTypeCourse();
+        }
+    });
 });
 
-// 코스 생성
-async function loadJSON() {
-    try {
-        const jsonPath = new URL('resources/static/data/mountain.json', 'http://localhost:8090/hike/');
-        const response = await fetch(jsonPath); // JSON 파일 경로
-        if (!response.ok) {
-            throw new Error('JSON 불러오기 결과 실패');
-        }
-        return await response.json();
-    } catch (error) {
-        console.error('JSON: 불러오는 도중 실패', error);
+function handleModeChange(isAutoSelected) {
+    if (!selects.isEmpty() && !confirmResetCourse()) {
+        const oppositeRadio = isAutoSelected ? $('#same') : $('#diff');
+        oppositeRadio.prop('checked', true);
+        return;
     }
+    resetCourse();
+    $('.mode-menu').toggleClass('disabled', !isAutoSelected);
+    appState.autoMode.isActive = isAutoSelected;
 }
 
-function drawMarker(markerConfig, position) {
-    const markerImg = new kakao.maps.MarkerImage(markerConfig.imgSrc, new kakao.maps.Size((markerConfig.imgSize)[0], (markerConfig.imgSize)[1]));
-    return new kakao.maps.Marker({
-        map: kakaoMap,
-        position,
-        image: markerImg
-    });
-}
-
-function drawCustomOverlay(position) {
-    const content = `<div class ="course-number">${selects.size()}</div>`;
-    const xAnchor = 0.426;
-    const yAnchor = 1.35;
-    return new kakao.maps.CustomOverlay({position, content, xAnchor, yAnchor});
-}
-
-function drawSpotMarkers() {
-    spotList.forEach(spot => {
-        const spotType = spot.spotType;
-        const point = new kakao.maps.LatLng(spot.spotY, spot.spotX);
-        const markerConfig = SPOT_TYPES[spotType];
-        if (markerConfig) {
-            drawMarker(markerConfig, point);
-        }
-    });
-}
-
+// 코스 생성
 function drawRoads() {
-    for (let i = 0; i < roadList.length; i++) {
-        const road = roadList[i];
-        const level = getLevel(road);
-        const time = (road.roadTimeUp + road.roadTimeDown) / 2;
-        const path = [];
-        let startNode;
-        let endNode;
-
-        road.coordList.forEach((({coordId, roadX, roadY}, idx, arr) => {
-            if (idx === 0) {
-                startNode = graph.addNode(coordId, roadX, roadY)
-            }
-            if (idx === arr.length - 1) {
-                endNode = graph.addNode(coordId, roadX, roadY);
-                graph.addEdge(startNode, endNode, road.roadKm, road.roadId, level, time);
-            }
-            path.push(new kakao.maps.LatLng(roadY, roadX));
-        }));
-
-        const line = new kakao.maps.Polyline({
+    roadList.forEach((road) => {
+        road.time = (road.roadTimeUp + road.roadTimeDown) / 2;
+        road.level = getLevel(road);
+        road.isClicked = false;
+        road.line = new kakao.maps.Polyline({
             map: kakaoMap,
-            path,
+            path: graph.generatePair(road),
             strokeWeight: STROKE_WEIGHTS.DEFAULT,
-            strokeColor: getColor(level, "LIGHT"),
+            strokeColor: getColor(road.level, OPACITIES.LIGHT),
             strokeOpacity: 1,
             strokeStyle: 'solid',
         });
+        road.line.setMap(kakaoMap);
 
-        road.line = line;
-        road.level = level;
-        road.time = time;
-        road.isClicked = false;
-        roads.set(road.roadId, road);
-
-        line.setMap(kakaoMap);
-
-        line.addListener('mouseover', () => {
-            if (autoMode.isActive && selects.size() > 1 || isCapturing) {
+        road.line.addListener('mouseover', () => {
+            if (appState.autoMode.isActive && selects.size() > 1 || appState.isCapturing) {
                 return;
             }
 
             if (road.isClicked) {
                 hideSelectRoads(road, selects);
-                setStrokeColor(line, getColor(level, "LIGHT"));
+                setStrokeColor(road.line, getColor(road.level, OPACITIES.LIGHT));
             } else {
-                setStrokeColor(line, getColor(level, "MIDDLE"));
+                setStrokeColor(road.line, getColor(road.level, OPACITIES.MIDDLE));
             }
         });
 
-        line.addListener('mouseout', () => {
-            if (isCapturing) return;
+        road.line.addListener('mouseout', () => {
+            if (appState.isCapturing) return;
             if (road.isClicked) {
-                setStrokeColor(line, getColor(level, "LIGHT"));
-                showSelectRoads();
+                setStrokeColor(road.line, getColor(road.level, OPACITIES.LIGHT));
+                showSelectRoads(selects, kakaoMap);
             } else {
-                if (autoMode.isFinished) {
+                if (appState.autoMode.isFinished) {
                     return;
                 }
-                setStrokeColor(line, getColor(level, "LIGHT"));
+                setStrokeColor(road.line, getColor(road.level, OPACITIES.LIGHT));
             }
         });
 
-        line.addListener('click', () => {
-            if (isCapturing) return;
-            if (autoMode.isActive) {
+        road.line.addListener('click', () => {
+            if (appState.isCapturing) return;
+            if (appState.autoMode.isActive) {
                 handleAutoRoadClick(road);
             } else {
                 handleManualRoadClick(road);
             }
         });
-    }
+
+        roads.set(road.roadId, road);
+    })
 }
 
 function handleAutoRoadClick(road) {
-    if (autoMode.isFinished) {
+    if (appState.autoMode.isFinished) {
         if (confirmResetCourse()) {
             resetCourse();
         }
@@ -412,7 +298,7 @@ function handleAutoRoadClick(road) {
     }
 
     if (!leafNodeId) {
-        alert("시종점과 연결된 등산로 2개를 선택해주세요!");
+        alert(MESSAGES.START_END_FIRST);
         return;
     }
 
@@ -422,7 +308,7 @@ function handleAutoRoadClick(road) {
 
     if (selects.size() === 2) {
         findAutoTypeCourse();
-        showSummaries();
+        showSummaries(appState);
     }
 }
 
@@ -448,53 +334,24 @@ function handleManualRoadClick(road) {
     }
 
     road.isClicked = !road.isClicked;
-    showSummaries();
-}
-
-function toggleDisableSaveButton(disabled) {
-    const saveButton = $('.save');
-    if (saveButton.prop('disabled') !== disabled) {
-        saveButton.prop('disabled', disabled);
-    }
-}
-
-function confirmResetCourse() {
-    return confirm("선택 경로가 초기화됩니다. 진행하시겠습니까?");
+    showSummaries(appState);
 }
 
 function resetCourse() {
     if (!selects.isEmpty()) {
         deleteSelectRoads(selects.first());
     }
-    resetSummary();
-    showSummaries();
-    if (autoMode.isActive) {
-        autoMode.isFinished = false;
+    resetSummary(appState);
+    showSummaries(appState);
+    if (appState.autoMode.isActive) {
+        appState.autoMode.isFinished = false;
     }
 
     toggleDisableSaveButton(true);
 }
 
-function unselectRoad(road) {
-    deleteSelectRoads(road);
-    setStrokeColor(road.line, getColor(road.level, "MIDDLE"));
-}
-
 function findAutoTypeCourse() {
-    const current = selects.peek();
-    const previous = selects.first();
-    let roadIds;
-
-    if (autoMode.type === AUTO_MODE_TYPE.SHORTEST) {
-        roadIds = graph.findShortestPath(previous.leafNodeId, current.leafNodeId);
-    } else if (autoMode.type === AUTO_MODE_TYPE.FASTEST) {
-        roadIds = graph.findFastestPath(previous.leafNodeId, current.leafNodeId);
-    } else if (autoMode.type === AUTO_MODE_TYPE.HARDEST) {
-        roadIds = graph.findHardestPath(previous.leafNodeId, current.leafNodeId);
-    } else if (autoMode.type === AUTO_MODE_TYPE.EASIEST) {
-        roadIds = graph.findEasiestPath(previous.leafNodeId, current.leafNodeId);
-    }
-
+    const roadIds = graph.findAutoPath(appState, selects);
     resetCourse();
     roadIds.forEach(roadId => {
         const fromNodeId = handleClick(roadId);
@@ -503,14 +360,9 @@ function findAutoTypeCourse() {
         selectRoad(road, fromNodeId);
     });
 
-    showSummaries();
-    autoMode.isFinished = true;
+    showSummaries(appState);
+    appState.autoMode.isFinished = true;
     toggleDisableSaveButton(false);
-}
-
-function selectRoad(road, fromNodeId, leafNodeId = null) {
-    addSelectRoad(road, fromNodeId, leafNodeId);
-    showSelectRoad(road);
 }
 
 function handleClick(roadId) {
@@ -518,19 +370,29 @@ function handleClick(roadId) {
     if (selects.isEmpty()) {
         const leafNode = graph.findLeafNodeIncluded(roadId);
         if (!leafNode) {
-            alert("시종점과 연결된 등산로부터 선택해주세요!");
+            alert(MESSAGES.START_END_FIRST);
             return;
         }
         fromNodeId = graph.getOppositeNode(roadId, leafNode);
     } else {
         const oppositeNodeId = graph.getOppositeNode(roadId, selects.peek().fromNode.id);
         if (!oppositeNodeId) {
-            alert("이전 등산로과 연결된 등산로를 선택해주세요!");
+            alert(MESSAGES.NO_CONNECTION);
             return;
         }
         fromNodeId = oppositeNodeId;
     }
     return fromNodeId;
+}
+
+function selectRoad(road, fromNodeId, leafNodeId = null) {
+    addSelectRoad(road, fromNodeId, leafNodeId);
+    showSelectRoad(road, selects, kakaoMap);
+}
+
+function unselectRoad(road) {
+    deleteSelectRoads(road);
+    setStrokeColor(road.line, getColor(road.level, OPACITIES.MIDDLE));
 }
 
 function addSelectRoad(road, fromNodeId, leafNodeId) {
@@ -545,12 +407,12 @@ function addSelectRoad(road, fromNodeId, leafNodeId) {
 
     delete road.coordList;
     selects.push(road.roadId, road);
-    increaseSummary(road);
+    increaseSummary(road, appState);
 }
 
 function deleteSelectRoads(road) {
     processAfterIndex(road, (key, value) => {
-        decreaseSummary(value);
+        decreaseSummary(value, appState);
         hideSelectRoad(value);
 
         value.isClicked = false;
@@ -560,164 +422,5 @@ function deleteSelectRoads(road) {
         }
 
         selects.deleteByKey(key);
-    });
-}
-
-function hideSelectRoads(road) {
-    processAfterIndex(road, (_, value) => {
-        hideSelectRoad(value);
-    });
-}
-
-function hideSelectRoad(road) {
-    road.marker.setMap(null);
-    road.customOverlay.setMap(null);
-    setStrokeColor(road.line, getColor(road.level, "LIGHT"));
-    setStrokeWeight(road.line, STROKE_WEIGHTS.DEFAULT);
-}
-
-function showSelectRoads() {
-    selects.forEach((value) => showSelectRoad(value));
-}
-
-function showSelectRoad(road) {
-    if (!road.marker) {
-        const markerConfig = SELECT_MARKERS[LEVELS[road.level]];
-        const position = new kakao.maps.LatLng(road.fromNode.y, road.fromNode.x);
-        road.marker = drawMarker(markerConfig, position);
-        road.customOverlay = drawCustomOverlay(position);
-    }
-    road.marker.setMap(kakaoMap);
-    road.customOverlay.setMap(kakaoMap);
-
-    setStrokeColor(road.line, getColor(road.level, "DARK"));
-    setStrokeWeight(road.line, STROKE_WEIGHTS.THICK);
-}
-
-function processAfterIndex(road, callback) {
-    const keys = Array.from(selects.keys());
-    const index = keys.indexOf(road.roadId);
-    if (index === -1) return;
-    keys.slice(index).forEach(key => {
-        const value = selects.findValueByKey(key);
-        callback(key, value);
-    });
-}
-
-function increaseSummary({roadKm, time, level}) {
-    updateSummary({roadKm, time, level}, 1);
-}
-
-function decreaseSummary({roadKm, time, level}) {
-    updateSummary({roadKm, time, level}, -1);
-}
-
-function resetSummary() {
-    summary.count = {...SUMMARY_DEFAULT_VALUE};
-    summary.time = {...SUMMARY_DEFAULT_VALUE};
-    summary.distance = {...SUMMARY_DEFAULT_VALUE};
-}
-
-function updateSummary({roadKm, time, level}, plusOrMinus) {
-    summary.count[LEVELS[level]] += plusOrMinus;
-    summary.distance[LEVELS[level]] = truncDecimal(summary.distance[LEVELS[level]] + plusOrMinus * roadKm);
-    summary.time[LEVELS[level]] += plusOrMinus * time;
-}
-
-function showSummaries() {
-    showSummary(SUMMARY_KEYS.COUNT, summary.count);
-    showSummary(SUMMARY_KEYS.DISTANCE, summary.distance);
-    for (const key in summary.time) {
-        showTimeSummary(key, summary.time[key]);
-    }
-    showTotalTimeSummary();
-}
-
-function showSummary(type, data) {
-    let total = 0;
-
-    for (const key in data) {
-        const value = data[key];
-        const selector = `#${type} .${key.toLowerCase()}`;
-
-        updateDisplay(selector, value > 0);
-        updateText(selector, value);
-
-        total += value;
-    }
-
-    const totalValue = type === SUMMARY_KEYS.DISTANCE ? truncDecimal(total) : total;
-    updateText(`#${type} .total`, totalValue);
-}
-
-function showTimeSummary(key, value) {
-    const {hour, minute} = minuteToHourMinute(value);
-    const selector = `#time .${key.toLowerCase()}`;
-
-    updateDisplay(selector, value > 0);
-    updateDisplay(`${selector} .hour`, hour);
-    updateText(`${selector} .hour`, hour);
-    updateText(`${selector} .minute`, roundMinuteIfHour(hour, minute));
-}
-
-function showTotalTimeSummary() {
-    const {EASY, MEDIUM, HARD} = summary.time;
-    const totalMinutes = EASY + MEDIUM + HARD;
-    const {hour, minute} = minuteToHourMinute(totalMinutes);
-    const selector = `#time .total`;
-
-    updateDisplay(`${selector} .hour`, hour);
-    updateText(`${selector} .hour`, hour);
-    updateText(`${selector} .minute`, roundMinuteIfHour(hour, minute));
-}
-
-function minuteToHourMinute(min) {
-    const hour = Math.floor(min / 60);
-    const minute = min % 60;
-    return {hour, minute};
-}
-
-function roundMinuteIfHour(hour, minute) {
-    return hour && minute ? Math.round(minute) : minute;
-}
-
-function updateDisplay(selector, isVisible) {
-    if (isVisible) {
-        $(selector).show();
-    } else {
-        $(selector).hide();
-    }
-}
-
-function updateText(selector, value) {
-    $(`${selector} .value`).text(value);
-}
-
-function setStrokeColor(line, color) {
-    line.setOptions({'strokeColor': color})
-}
-
-function setStrokeWeight(line, value) {
-    line.setOptions({'strokeWeight': value})
-}
-
-function truncDecimal(num) {
-    return parseFloat(num.toFixed(2));
-}
-
-function getLevel({roadTimeUp, roadTimeDown, roadKm}) {
-    const ratio = roadTimeUp / (roadTimeDown || 1);
-    const measure = Math.pow(ratio, 3) * (roadKm / 2.5);
-
-    if (measure < 1) {
-        return 1;
-    } else if (measure < 2) {
-        return 2;
-    } else {
-        return 3;
-    }
-}
-
-function getColor(level, opacity) {
-    return COLORS[LEVELS[level]][opacity];
+    }, selects);
 }

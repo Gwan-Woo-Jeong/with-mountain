@@ -1,3 +1,5 @@
+import {AUTO_MODE_TYPE} from "./constants.js";
+
 class Graph {
     constructor() {
         this.nodes = new Map();
@@ -38,6 +40,25 @@ class Graph {
     addEdge(start, end, distance, edgeId, level, time) {
         this.nodes.get(start).push({id: edgeId, node: end, distance, level, time});
         this.nodes.get(end).push({id: edgeId, node: start, distance, level, time});
+    }
+
+    generatePair(road) {
+        const path = [];
+        let startNode;
+        let endNode;
+
+        road.coordList.forEach(({coordId, roadX, roadY}, idx, arr) => {
+            if (idx === 0) {
+                startNode = this.addNode(coordId, roadX, roadY);
+            }
+            if (idx === arr.length - 1) {
+                endNode = this.addNode(coordId, roadX, roadY);
+                this.addEdge(startNode, endNode, road.roadKm, road.roadId, road.level, road.time);
+            }
+            path.push(new kakao.maps.LatLng(roadY, roadX));
+        });
+
+        return path;
     }
 
     findLeafNodes() {
@@ -128,6 +149,21 @@ class Graph {
         } else {
             return null; // No path found
         }
+    }
+
+    findAutoPath(appState, selects) {
+        const current = selects.peek();
+        const previous = selects.first();
+        if (appState.autoMode.type === AUTO_MODE_TYPE.SHORTEST) {
+            return this.findShortestPath(previous.leafNodeId, current.leafNodeId);
+        } else if (appState.autoMode.type === AUTO_MODE_TYPE.FASTEST) {
+            return this.findFastestPath(previous.leafNodeId, current.leafNodeId);
+        } else if (appState.autoMode.type === AUTO_MODE_TYPE.HARDEST) {
+            return this.findHardestPath(previous.leafNodeId, current.leafNodeId);
+        } else if (appState.autoMode.type === AUTO_MODE_TYPE.EASIEST) {
+            return this.findEasiestPath(previous.leafNodeId, current.leafNodeId);
+        }
+        return [];
     }
 
     findShortestPath(startNode, endNode) {
